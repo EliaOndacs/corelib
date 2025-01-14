@@ -900,6 +900,11 @@ class Canvas:
             [" " for __ in range(self.width)] for _ in range(self.height)
         ]
 
+    def clear(self):
+        self._buffer = [
+            [" " for __ in range(self.width)] for _ in range(self.height)
+        ]
+
     def addstr(self, x: int, y: int, string: str):
         lines = string.split("\n")
         iy = 0
@@ -1082,6 +1087,3 @@ class Scene(Renderable):
         str(self)
         return ""
 
-
-class Mouse:
-    def __init__(self): ...

@@ -82,6 +82,7 @@ def execute_line(action, scope: dict[str, Any]):
                 exit()
             scope[prams[0].value] = prams[1]
 
+
         case "print":
             if isinstance(prams[0], Word):
                 print(scope.get(prams[0].value, "undefined"))

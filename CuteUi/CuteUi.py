@@ -1,5 +1,7 @@
-from BaseUi import *  # pack: ignore
-
+try:
+    from BaseUi import *  # pack: ignore
+except ModuleNotFoundError:
+    from system.corelib.BaseUi import * # pack: ignore
 
 class Statusline(Renderable):
     def __init__(self, data: list[Renderable], style: Style | None = None):
@@ -319,15 +321,3 @@ def note(text: str, message: str, ln: int):
         result += line + "\n"
     return result
 
-class Graph:
-    def __init__(self) -> None:
-        pass
-
-def main():
-
-    return
-
-
-if __name__ == "__main__":
-    main()
-# end main
