@@ -17,8 +17,9 @@ class Style:
         return self.__data__[key]
 
 smooth_cute = Style({
-    'ascii_border': '─',
-    'border_vertical_char': '│',
+    'Border.horizontal': '─',
+    'Border.vertical': '│',
+    "Border.corners": ['┌', "┐", "└", "┘"],
     'ProgressBar.left': '[',
     'ProgressBar.right': ']',
     'ProgressBar.tip': '>',
@@ -66,9 +67,11 @@ so_nerdy = Style({
     'Notification.right': '\ue0b5',
 })
 
+
 minimal_space = Style({
-    "ascii_border": '.',
-    "border_vertical_char": ':',
+    "Border.horizontal": ' ',
+    "Border.vertical": '│',
+    "Border.corners": ['┌', "┐", "└", "┘"],
     "ProgressBar.left": ' ',
     "ProgressBar.right": ' ',
     "ProgressBar.tip": '>',

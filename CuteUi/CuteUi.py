@@ -264,7 +264,7 @@ class Table:
 def highlight(text: str, selection: Selection, style: Style | None = None):
     style = get_style(style)
     if style:
-        code = style.get("highlight.code", "\x1B[7m")
+        code = style.get("Highlight.code", "\x1B[7m")
     else:
         code = "\x1B[7m"
 

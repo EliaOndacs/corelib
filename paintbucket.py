@@ -102,7 +102,6 @@ class Screen:
         global _string
         _string = ""
 
-
 class div:
     "a class to make divs in the ui"
     _string: str = ""
