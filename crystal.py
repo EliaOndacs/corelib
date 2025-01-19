@@ -41,7 +41,7 @@ class Element:
     def __str__(self):
         return self.cache
 
-def component(initial_states: ElementStates | None = None):
+def component(*, initial_states: ElementStates | None = None):
     if not (initial_states):
         initial_states = {}
 

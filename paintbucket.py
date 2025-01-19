@@ -5,6 +5,7 @@ __all__ = [
     "text",
     "push",
     "clear",
+    "indent",
     "newline",
     "register",
     "Screen",

@@ -1,6 +1,8 @@
 from typing import Any, Callable
 from bs4 import BeautifulSoup, Tag
 
+def deleteWord(word: str, text: str):
+    return text.replace(word, "")
 
 class TextReplacer:
     """

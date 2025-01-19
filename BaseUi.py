@@ -278,6 +278,44 @@ def deleteText(text: str):
 # Regular expression to strip ANSI escape codes
 ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
+def smartborder(string, padding=1, style: Style | None = None):
+    "a more complex functionalitie for creating and adding borders to text, this function allows you to make more complex borders"
+    style = get_style(style)
+    if style:
+        horizontal = style.get("Smartborder.horizontal", ["-"]*2)
+        vertical = style.get("Smartborder.vertical", ["|"]*2)
+        corners = style.get("Smartborder.corners", ["+"]*4)
+    else:
+        horizontal = ["-"*2]
+        vertical = ["|"]*2
+        corners = ["+"]*4
+
+    # Split the input into lines
+    lines = string.splitlines()
+
+    # Strip escape codes to calculate the visible width of each line
+    stripped_lines = [ansi_escape.sub("", line) for line in lines]
+    max_width = max(len(line) for line in stripped_lines)
+
+    # Create the top border
+    border_top = corners[0] + horizontal[0] * (max_width + padding * 2) + corners[1]
+    border_bottom = corners[2] + horizontal[1] * (max_width + padding * 2) + corners[3]
+
+    # Create the bordered lines
+    bordered_lines = [border_top]
+    for line, stripped_line in zip(lines, stripped_lines):
+        # Add padding around the visible text
+        visible_width = len(stripped_line)
+        padding_right = max_width - visible_width
+        bordered_lines.append(
+            f"{vertical[0]}{' ' * padding}{line}{' ' * (padding + padding_right)}{vertical[1]}"
+        )
+    bordered_lines.append(border_bottom)
+
+    # Join the lines back together
+    return "\n".join(bordered_lines)
+
+
 
 def border(string, padding=1, style: Style | None = None):
     "function to add border to a string"

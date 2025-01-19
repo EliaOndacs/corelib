@@ -18,7 +18,7 @@ from typing import (
 )
 from ansi.colour import *  # type: ignore
 from enum import StrEnum
-import sys
+import sys, re
 
 
 @runtime_checkable
@@ -27,7 +27,7 @@ class Renderable(Protocol):
 
 
 class Component(Renderable):
-    
+
     def __init__(self, states: dict[str, Any]) -> None:
         self.states = states
 
@@ -55,7 +55,9 @@ class Component(Renderable):
 
 
 class codes(StrEnum):
-    CLEAR = "\x1b[h\x1b[2J"
+    CLEAR = "\x1b[2J"
+    UP = "\x1b[A"
+    HOME = "\x1b[H"
 
 
 class Style:
@@ -73,6 +75,10 @@ class Style:
 
     def __getitem__(self, key):
         return self.__data__[key]
+
+
+def mergeStyles(style_A: Style, style_B: Style):
+    return Style({**style_A.__data__, **style_B.__data__})
 
 
 AT_STYLE = "Style"
@@ -137,7 +143,7 @@ class Animation:
 
 
 class Measurements(NamedTuple):
-    """Measurements of an text"""
+    """Measurements of a text"""
 
     columns: int
     lines: int
@@ -145,10 +151,19 @@ class Measurements(NamedTuple):
 
     @classmethod
     def measure(cls, text: str):
-        "measure a text"
-        l = text.split("\n")
-        max_columns = len(max(l, key=len))
-        return Measurements(max_columns, len(l), text)
+        "Measure a text, stripping ANSI escape codes"
+        # Regular expression to strip ANSI escape codes
+        ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+        
+        # Strip ANSI escape codes from the text
+        stripped_text = ansi_escape.sub('', text)
+        
+        # Split the stripped text into lines
+        l = stripped_text.split("\n")
+        
+        # Measure the maximum number of columns and the number of lines
+        max_columns = len(max(l, key=len, default=''))  # Use default='' to handle empty input
+        return Measurements(max_columns, len(l), stripped_text)
 
 
 class Block:
@@ -260,27 +275,46 @@ def deleteText(text: str):
     return "\b" * len(text)
 
 
-def ascii_border(text, style: Style | None = None):
-    "make an ascii border around the `text`"
+# Regular expression to strip ANSI escape codes
+ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
+
+def border(string, padding=1, style: Style | None = None):
+    "function to add border to a string"
     style = get_style(style)
-    lines = text.split("\n")
-    max_len = max(len(line) for line in lines)
     if style:
-        border_char = style.get("ascii_border", "-")
-        border_vertical_char = style.get("border_vertical_char", "|")
+        horizontal = style.get("Border.horizontal", "-")
+        vertical = style.get("Border.vertical", "|")
+        corners = style.get("Border.corners", ["+", "+", "+", "+"])
     else:
-        border_char = "-"
-        border_vertical_char = "|"
-    border = border_char * (max_len + 2)
-    result = []
-    for line in lines:
-        bordered_line = (
-            f"{border_vertical_char}{line.ljust(max_len)}{border_vertical_char}"
+        horizontal = "-"
+        vertical = "|"
+        corners = ["+", "+", "+", "+"]
+
+    # Split the input into lines
+    lines = string.splitlines()
+
+    # Strip escape codes to calculate the visible width of each line
+    stripped_lines = [ansi_escape.sub("", line) for line in lines]
+    max_width = max(len(line) for line in stripped_lines)
+
+    # Create the top border
+    border_top = corners[0] + horizontal * (max_width + padding * 2) + corners[1]
+    border_bottom = corners[2] + horizontal * (max_width + padding * 2) + corners[3]
+
+    # Create the bordered lines
+    bordered_lines = [border_top]
+    for line, stripped_line in zip(lines, stripped_lines):
+        # Add padding around the visible text
+        visible_width = len(stripped_line)
+        padding_right = max_width - visible_width
+        bordered_lines.append(
+            f"{vertical}{' ' * padding}{line}{' ' * (padding + padding_right)}{vertical}"
         )
-        result.append(bordered_line)
-    result.insert(0, border)
-    result.append(border)
-    return "\n".join(result)
+    bordered_lines.append(border_bottom)
+
+    # Join the lines back together
+    return "\n".join(bordered_lines)
 
 
 def VerticalLabel(text: str):
@@ -404,8 +438,32 @@ class DataTable:
         return result
 
 
+def padding(string, top=0, bottom=0, left=0, right=0):
+    "function to add paddint to a string in all directions"
+    # Split the input into lines
+    lines = string.splitlines()
+
+    # Strip escape codes to calculate the visible width
+    stripped_lines = [ansi_escape.sub("", line) for line in lines]
+    max_width = max(len(line) for line in stripped_lines)
+
+    # Add left and right padding to each line
+    padded_lines = [
+        f"{' ' * left}{line}{' ' * (right + max_width - len(stripped_line))}"
+        for line, stripped_line in zip(lines, stripped_lines)
+    ]
+
+    # Add top and bottom padding
+    top_padding = [" " * (max_width + left + right)] * top
+    bottom_padding = [" " * (max_width + left + right)] * bottom
+
+    # Combine everything
+    final_lines = top_padding + padded_lines + bottom_padding
+    return "\n".join(final_lines)
+
+
 class Padding:
-    "Adds Padding For strings"
+    "Adds Padding For strings, for better experience use `padding` function instead!"
 
     @classmethod
     def left(cls, text: str, amount: int = 5):
@@ -461,7 +519,7 @@ class SwitchText:
 
 
 class Input:
-    "Input Component (Only Fires When Try To Convert To A String And Will Return The UserInput)"
+    "Input Component (Gets The Input On Render!)"
 
     def __init__(self, prompt: str = "", style: Style | None = None):
         self.prompt = prompt
@@ -479,7 +537,7 @@ class Title:
     "Title Desighn"
 
     def __init__(self, text: str):
-        self.text = f"-[{text}]-"
+        self.text = f"[ {text} ]"
 
     def __str__(self):
         return self.text
@@ -900,6 +958,9 @@ class Canvas:
             [" " for __ in range(self.width)] for _ in range(self.height)
         ]
 
+    def clear(self):
+        self._buffer = [[" " for __ in range(self.width)] for _ in range(self.height)]
+
     def addstr(self, x: int, y: int, string: str):
         lines = string.split("\n")
         iy = 0
@@ -1081,7 +1142,3 @@ class Scene(Renderable):
         self.current_page = pagen
         str(self)
         return ""
-
-
-class Mouse:
-    def __init__(self): ...
