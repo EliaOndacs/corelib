@@ -11,11 +11,11 @@ from typing import (
     Generator,
     Iterable,
     Literal,
-    NamedTuple,
     Protocol,
     Callable,
     runtime_checkable,
 )
+from warnings import deprecated
 from ansi.colour import *  # type: ignore
 from enum import StrEnum
 import sys, re
@@ -81,8 +81,28 @@ def mergeStyles(style_A: Style, style_B: Style):
     return Style({**style_A.__data__, **style_B.__data__})
 
 
+class Setting:
+    "setting object for all configuration of all components"
+
+    def __init__(self, options: dict[str, Any]) -> None:
+        self.__data__: dict[str, Any] = options
+        self.get = self.__data__.get
+
+    def __repr__(self):
+        return (
+            f"[object of 'Setting' id: {hex(id(self))!r} size: {self.__sizeof__()!r}]"
+        )
+
+    def __setitem__(self, key, value):
+        self.__data__[key] = value
+
+    def __getitem__(self, key):
+        return self.__data__[key]
+
+
 AT_STYLE = "Style"
 AT_DISPLAY = "Display"
+AT_SETTING = "Setting"
 
 
 def make_auto(_type, instance):
@@ -92,6 +112,9 @@ def make_auto(_type, instance):
         return
     elif _type == "Display":
         globals()["@auto[display]"] = instance
+        return
+    elif _type == "Setting":
+        globals()["@auto[setting]"] = instance
         return
 
     raise TypeError(f"type {_type!r} it not supported as an auto object!")
@@ -111,6 +134,14 @@ def get_display(display: "Display|None"):
         return display
     if "@auto[display]" in globals():
         return globals()["@auto[display]"]
+
+
+def get_setting(setting: Setting | None):
+    "get the auto setting if exists or None or past the setting pram"
+    if setting:
+        return setting
+    if "@auto[setting]" in globals():
+        return globals()["@auto[setting]"]
 
 
 class Animation:
@@ -141,8 +172,8 @@ class Animation:
     def __str__(self) -> str:
         return self.frames[self.frameI % len(self.frames)].text
 
-
-class Measurements(NamedTuple):
+@dataclass
+class Measurements:
     """Measurements of a text"""
 
     columns: int
@@ -154,17 +185,40 @@ class Measurements(NamedTuple):
         "Measure a text, stripping ANSI escape codes"
         # Regular expression to strip ANSI escape codes
         ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-        
+
         # Strip ANSI escape codes from the text
-        stripped_text = ansi_escape.sub('', text)
-        
+        stripped_text = ansi_escape.sub("", text)
+
         # Split the stripped text into lines
         l = stripped_text.split("\n")
-        
+
         # Measure the maximum number of columns and the number of lines
-        max_columns = len(max(l, key=len, default=''))  # Use default='' to handle empty input
+        max_columns = len(
+            max(l, key=len, default="")
+        )  # Use default='' to handle empty input
         return Measurements(max_columns, len(l), stripped_text)
 
+    def __gt__(self, value: "Measurements") -> bool:
+        return self.columns+self.lines > value.columns+value.lines
+
+    def __lt__(self, value: "Measurements") -> bool:
+        return self.columns+self.lines < value.columns+value.lines
+
+    def __le__(self, value: "Measurements") -> bool:
+        return self.columns+self.lines <= value.columns+value.lines
+
+    def __ge__(self, value: "Measurements") -> bool:
+        return self.columns+self.lines >= value.columns+value.lines
+
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, Measurements):
+            raise TypeError(f"cannot compare the object of type {type(value)!r} to `Measurements`")
+        return self.columns+self.lines == value.columns+value.lines
+
+    def __ne__(self, value: object) -> bool:
+        if not isinstance(value, Measurements):
+            raise TypeError(f"cannot compare the object of type {type(value)!r} to `Measurements`")
+        return self.columns+self.lines != value.columns+value.lines
 
 class Block:
     """A Block Of Text (a multiline text)"""
@@ -278,17 +332,18 @@ def deleteText(text: str):
 # Regular expression to strip ANSI escape codes
 ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
+
 def smartborder(string, padding=1, style: Style | None = None):
     "a more complex functionalitie for creating and adding borders to text, this function allows you to make more complex borders"
     style = get_style(style)
     if style:
-        horizontal = style.get("Smartborder.horizontal", ["-"]*2)
-        vertical = style.get("Smartborder.vertical", ["|"]*2)
-        corners = style.get("Smartborder.corners", ["+"]*4)
+        horizontal = style.get("Smartborder.horizontal", ["-"] * 2)
+        vertical = style.get("Smartborder.vertical", ["|"] * 2)
+        corners = style.get("Smartborder.corners", ["+"] * 4)
     else:
-        horizontal = ["-"*2]
-        vertical = ["|"]*2
-        corners = ["+"]*4
+        horizontal = ["-" * 2]
+        vertical = ["|"] * 2
+        corners = ["+"] * 4
 
     # Split the input into lines
     lines = string.splitlines()
@@ -314,7 +369,6 @@ def smartborder(string, padding=1, style: Style | None = None):
 
     # Join the lines back together
     return "\n".join(bordered_lines)
-
 
 
 def border(string, padding=1, style: Style | None = None):
@@ -429,6 +483,7 @@ class Spinner:
         return str(self.animation)
 
 
+@deprecated("The Class `DataTable` is deprecated, use the `table` function instead")
 class DataTable:
     "DataTable component"
 
@@ -597,7 +652,7 @@ class Bar:
         else:
             sep = ">"
         if self.active and len(self.cols) <= self.active:
-            self.cols = list(self.cols)
+            self.cols = list(map(str, self.cols))
             self.cols[self.active] = fx.underline(self.cols[self.active])
         return f" {sep} ".join(self.cols)
 
@@ -639,6 +694,16 @@ class Chain:
 
 class PrettyLogging:
     "Pretty Logging"
+
+    def custom(self, icon, color_func, name, detail, use_stdout: bool = False):
+        text = (
+            color_func(icon.upper()) + " -> " + fg.cyan(name) + ": " + fg.gray(detail)
+        )
+        if use_stdout == True:
+            print(text)
+            return
+        sys.stderr.write(text + "\n")
+        sys.stderr.flush()
 
     def error(self, name, detail, use_stdout: bool = False):
         text = fg.red("ERROR") + " -> " + fg.cyan(name) + ": " + fg.gray(detail)
@@ -695,6 +760,7 @@ def join_string(*objs: str):
     return " ".join(objs)
 
 
+@deprecated("Select is deprecated because of its bad design and functionality")
 class Select:
     "MultiChoice Menu (Composition DataTable)"
 
@@ -884,16 +950,16 @@ class Crop:
         cls,
         string: str,
         measurements: Measurements | None = None,
-        amount: tuple[int, int] = (3, 5),
+        amount: tuple[int, int] = (3, 5), # type: ignore
         offset: tuple[int, int] = (0, 0),
     ):
         if (
             measurements
         ):  # a lot of typing errors, but trust me, this works perfectly fine
-            amount: list[int] = list(amount)
-            amount[0] = measurements.lines
-            amount[1] = measurements.columns
-            amount: tuple[int, int] = tuple(amount)
+            amount: list[int] = list(amount) # type: ignore
+            amount[0] = measurements.lines # type: ignore
+            amount[1] = measurements.columns # type: ignore
+            amount: tuple[int, int] = tuple(amount) # type: ignore
 
         result = ""
         lines = string.splitlines()
@@ -986,8 +1052,11 @@ class Tree:
         return self._visit_node(self.items)
 
 
-class Canvas:
-    "Canavs Component"
+@deprecated(
+    "you can still use LegacyCanavs, but its recommended to use `Canvas` instead."
+)
+class LegacyCanvas:
+    "Old Canavs Component"
 
     def __init__(self, width: int, height: int) -> None:
         self.width = width
@@ -1038,7 +1107,7 @@ class Canvas:
         result = ""
         for row in self._buffer:
             for col in row:
-                result += Canvas.RuleOneChar(col)
+                result += LegacyCanvas.RuleOneChar(col)
             result += "\n"
         return result
 
@@ -1046,6 +1115,39 @@ class Canvas:
     def RuleOneChar(cls, string: str):
         "strip a string to only one char"
         return string[0]
+
+
+class Canvas:
+    def __init__(self, width: int, height: int) -> None:
+        self.height = height
+        self.width = width
+        self.buffer = [[" " for _ in range(width)] for _ in range(height)]
+
+    def setcol(self, char: str, x: int, y: int):
+        x = x % self.width
+        y = y % self.height
+        self.buffer[y][x] = Crop.line(char, 1)
+
+    def getcol(self, x: int, y: int):
+        x = x % self.width
+        y = y % self.height
+        return self.buffer[y][x]
+
+    def push_string(self, string: str, x: int, y: int):
+        lines = Block(string)
+        
+        for added_row, line in enumerate(lines.render()):
+            for added_col, col in enumerate(line):
+                self.setcol(col, x+added_col, y+added_row)
+
+    def __str__(self):
+        result = ""
+        for index, row in enumerate(self.buffer):
+            for col in row:
+                result += col
+            if index != len(self.buffer) - 1:
+                result += "\n"
+        return result
 
 
 class ImportanceText:
@@ -1180,3 +1282,85 @@ class Scene(Renderable):
         self.current_page = pagen
         str(self)
         return ""
+
+
+def table(data: list[list[str]], style: Style | None = None) -> str:
+    "nice ascii tables"
+    style = get_style(style)
+    if style:
+        left = style.get("Table.left", "[")
+        right = style.get("Tabel.right", "]")
+    else:
+        left = "["
+        right = "]"
+
+    # Calculate the maximum width for each column
+    def cell(text: str, width: int) -> str:
+        return f"{left} {text:<{width}} {right}"  # Left-align text within the specified width
+
+    def row(datas: list[str], widths: list[int]) -> str:
+        return "".join(cell(data, widths[i]) for i, data in enumerate(datas))
+
+    widths = [max(len(str(item)) for item in column) for column in zip(*data)]
+
+    return "\n".join(row(datas, widths) for datas in data)
+
+
+def cell(
+    text: str, id: int, style: Style | None = None, setting: Setting | None = None
+):
+    return {
+        "text": text,
+        "id": id,
+        "style": get_style(style),
+        "setting": get_setting(setting),
+    }
+
+
+def render_layers(
+    layers: list[str], replace_space: bool = False
+) -> Generator[str, None, None]:
+    """Yield the rendered layers of text, moving the cursor appropriately."""
+
+    # Constants for ANSI escape codes
+    ANSI_UP = "\x1b[A"
+    ANSI_RIGHT = "\x1b[C"
+    ANSI_CLEAR_LINE = "\r"
+    ANSI_DOWN = "\x1b[1B"
+
+    def count_newlines(text: str) -> int:
+        """Return the number of newlines in the given text."""
+        return text.count("\n")
+
+    def restore_row(text: str) -> str:
+        """Return the escape sequence to move the cursor up based on the number of newlines in the text."""
+        return ANSI_UP * count_newlines(text)
+
+    def restore_col() -> str:
+        """Return the escape sequence to move the cursor to the beginning of the line."""
+        return ANSI_CLEAR_LINE
+
+    for index, layer in enumerate(layers):
+        if index != 0:
+            # Move the cursor up and to the beginning of the line
+            yield restore_row(layers[index - 1]) + restore_col()
+
+        # Replace spaces with cursor movement to the right if specified
+        if replace_space:
+            layer = layer.replace(" ", ANSI_RIGHT)
+
+        yield layer
+
+    # Move the cursor down after rendering all layers
+    yield ANSI_DOWN + "\r"
+
+
+def overlap(layers: list[str]) -> str:
+    biggest = max(layers, key=Measurements.measure)
+    size = Measurements.measure(biggest)
+    canva = Canvas(size.columns, size.lines)
+    for layer in layers:
+        canva.push_string(layer, 0, 0)
+    return str(canva)
+
+

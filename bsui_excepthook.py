@@ -5,7 +5,7 @@ import this module to get beautiful error messages
 by BaseUi.py
 
 > Note:
-> using this module dosen't require importing/packing BaseUi
+> using this module doesn't require importing/packing BaseUi
 
 """
 

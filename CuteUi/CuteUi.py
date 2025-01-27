@@ -135,9 +135,9 @@ class Meter(Renderable):
         assert (initial < end) or (
             initial > start
         ), "initial value should be between the start-end value"
-        assert start > 0, "start value should be above zero"
+        assert start >= 0, "start value should be above zero"
         self.start = start
-        self.end = end + 2
+        self.end = end + 1
         self.value = initial
         self.initial = initial
         self.style = get_style(style)

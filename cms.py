@@ -3,7 +3,7 @@ import re
 
 
 def __fuzzyfinder(input, items, sort_results=True):
-    func = lambda someting: someting
+    func = lambda something: something
     results = []
     input = str(input) if not isinstance(input, str) else input
     pattern = ".*?".join(map(re.escape, input))
