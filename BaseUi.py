@@ -172,6 +172,7 @@ class Animation:
     def __str__(self) -> str:
         return self.frames[self.frameI % len(self.frames)].text
 
+
 @dataclass
 class Measurements:
     """Measurements of a text"""
@@ -199,26 +200,31 @@ class Measurements:
         return Measurements(max_columns, len(l), stripped_text)
 
     def __gt__(self, value: "Measurements") -> bool:
-        return self.columns+self.lines > value.columns+value.lines
+        return self.columns + self.lines > value.columns + value.lines
 
     def __lt__(self, value: "Measurements") -> bool:
-        return self.columns+self.lines < value.columns+value.lines
+        return self.columns + self.lines < value.columns + value.lines
 
     def __le__(self, value: "Measurements") -> bool:
-        return self.columns+self.lines <= value.columns+value.lines
+        return self.columns + self.lines <= value.columns + value.lines
 
     def __ge__(self, value: "Measurements") -> bool:
-        return self.columns+self.lines >= value.columns+value.lines
+        return self.columns + self.lines >= value.columns + value.lines
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, Measurements):
-            raise TypeError(f"cannot compare the object of type {type(value)!r} to `Measurements`")
-        return self.columns+self.lines == value.columns+value.lines
+            raise TypeError(
+                f"cannot compare the object of type {type(value)!r} to `Measurements`"
+            )
+        return self.columns + self.lines == value.columns + value.lines
 
     def __ne__(self, value: object) -> bool:
         if not isinstance(value, Measurements):
-            raise TypeError(f"cannot compare the object of type {type(value)!r} to `Measurements`")
-        return self.columns+self.lines != value.columns+value.lines
+            raise TypeError(
+                f"cannot compare the object of type {type(value)!r} to `Measurements`"
+            )
+        return self.columns + self.lines != value.columns + value.lines
+
 
 class Block:
     """A Block Of Text (a multiline text)"""
@@ -950,16 +956,16 @@ class Crop:
         cls,
         string: str,
         measurements: Measurements | None = None,
-        amount: tuple[int, int] = (3, 5), # type: ignore
+        amount: tuple[int, int] = (3, 5),  # type: ignore
         offset: tuple[int, int] = (0, 0),
     ):
         if (
             measurements
         ):  # a lot of typing errors, but trust me, this works perfectly fine
-            amount: list[int] = list(amount) # type: ignore
-            amount[0] = measurements.lines # type: ignore
-            amount[1] = measurements.columns # type: ignore
-            amount: tuple[int, int] = tuple(amount) # type: ignore
+            amount: list[int] = list(amount)  # type: ignore
+            amount[0] = measurements.lines  # type: ignore
+            amount[1] = measurements.columns  # type: ignore
+            amount: tuple[int, int] = tuple(amount)  # type: ignore
 
         result = ""
         lines = string.splitlines()
@@ -1135,10 +1141,10 @@ class Canvas:
 
     def push_string(self, string: str, x: int, y: int):
         lines = Block(string)
-        
+
         for added_row, line in enumerate(lines.render()):
             for added_col, col in enumerate(line):
-                self.setcol(col, x+added_col, y+added_row)
+                self.setcol(col, x + added_col, y + added_row)
 
     def __str__(self):
         result = ""
@@ -1148,7 +1154,6 @@ class Canvas:
             if index != len(self.buffer) - 1:
                 result += "\n"
         return result
-
 
 class ImportanceText:
     def __init__(self, messages: str, style: Style | None = None) -> None:
@@ -1362,5 +1367,3 @@ def overlap(layers: list[str]) -> str:
     for layer in layers:
         canva.push_string(layer, 0, 0)
     return str(canva)
-
-
