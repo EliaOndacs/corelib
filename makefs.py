@@ -70,5 +70,5 @@ def mkfs(map: _DirectoryBlueprint, parent: str | None = None):
         if item.get("text", None):
             file(item, parent=fullpath)  # type: ignore
             continue
-        structure(item, parent=fullpath)  # type: ignore
+        mkfs(item, parent=fullpath)  # type: ignore
 

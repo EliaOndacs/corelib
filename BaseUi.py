@@ -1146,6 +1146,9 @@ class Canvas:
             for added_col, col in enumerate(line):
                 self.setcol(col, x + added_col, y + added_row)
 
+    def clear(self):
+        self.buffer = [[" " for _ in range(self.width)] for _ in range(self.height)]
+
     def __str__(self):
         result = ""
         for index, row in enumerate(self.buffer):
