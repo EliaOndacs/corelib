@@ -227,7 +227,7 @@ class Measurements:
 
 
 class Block:
-    """A Block Of Text (a multiline text)"""
+    """A Block Of Text (a multiline text) [not recommended! use `getlines` function instead!]"""
 
     def __init__(self, raw: str) -> None:
         self._raw = raw  # very unsafe, but might be required later
@@ -240,6 +240,10 @@ class Block:
 
     def __str__(self) -> str:
         return "\n".join(self.text)
+
+
+def getlines(string: str, *, newline: str = "\n") -> list[str]:
+    return string.split(newline)
 
 
 #                    (ln   col)
@@ -765,6 +769,9 @@ def join_string(*objs: str):
     "joins multiple string by space"
     return " ".join(objs)
 
+def joinlines(*lines: str):
+    "join multiple lines by a newline character"
+    return "\n".join(lines)
 
 @deprecated("Select is deprecated because of its bad design and functionality")
 class Select:
@@ -1158,6 +1165,7 @@ class Canvas:
                 result += "\n"
         return result
 
+
 class ImportanceText:
     def __init__(self, messages: str, style: Style | None = None) -> None:
         self.messages = messages
@@ -1370,3 +1378,114 @@ def overlap(layers: list[str]) -> str:
     for layer in layers:
         canva.push_string(layer, 0, 0)
     return str(canva)
+
+
+def t(string: str) -> Callable:
+    def __call__(**kwargs):
+        return string.format(**kwargs)
+
+    return __call__
+
+
+def indent(text: str, style: Style | None = None) -> str:
+    style = get_style(style)
+    if style:
+        indentation = style.get("indent", "    ")
+    else:
+        indentation = "    "
+    lif = lambda line: f"{indentation}{line}"
+    lines = getlines(text)
+    _indented_lines = map(lif, lines)
+    return "\n".join(_indented_lines)
+
+def getlevel(level: int):
+    match level:
+        case 1:
+            return "\u2581"
+        case 2:
+            return "\u2582"
+        case 3:
+            return "\u2583"
+        case 4:
+            return "\u2584"
+        case 5:
+            return "\u2585"
+        case 6:
+            return "\u2586"
+        case 7:
+            return "\u2587"
+        case 8:
+            return "\u2588"
+    return " "
+
+def prettify(string: str, setting: Setting|None = None) -> str:
+    """
+    Prettifies the input string by replacing certain characters with their Unicode equivalents,
+    collapsing spaces, replacing newlines with spaces, and converting text enclosed in double
+    asterisks to uppercase.
+
+    Args:
+        string (str): The input string to be prettified.
+
+    Returns:
+        str: The prettified string.
+    """
+    setting = get_setting(setting)
+    if setting:
+        unicodeModule = setting.get("prettifier.unicode_module", False)
+        spaceCollapseModule = setting.get("prettifier.space_collapse_module", True)
+        intensifierModule = setting.get("prettifier.intensifire_module", True)
+        innlineElementModule = setting.get("prettifier.inline_element_module", False)
+    else:
+        unicodeModule = False
+        spaceCollapseModule = True
+        intensifierModule = True
+        innlineElementModule = False
+   
+    if unicodeModule:
+        # Unicode characterization
+        d = {
+            "{": "\ufe5b",
+            "}": "\ufe5c",
+            "(": "\ufe59",
+            ")": "\ufe5A",
+            "[": "\ufe5d",
+            "]": "\ufe4e",
+        }
+
+        # Replace characters using str.translate for better performance
+        translation_table = str.maketrans(d)
+        string = string.translate(translation_table)
+
+    if spaceCollapseModule:
+        # Collapsing spaces
+        string = re.sub(r"\s+", " ", string).strip()
+        string = string.replace("\n", " ")
+
+    if intensifierModule:
+        # Intensifier
+        string = re.sub(r"\*\*(.*?)\*\*", lambda match: match.group(1).upper(), string)
+
+    if innlineElementModule:
+        # Inline Elements
+
+        def elementFinder(match):
+            word = match.group(1)
+            match word:
+                case "newline":
+                    return "\n"
+                case "bel":
+                    return "\u0007"
+                case "backspace":
+                    return "\u0008"
+                case "del":
+                    return "\u007f"
+                case "cr":
+                    return "\u000d"
+                case "lf":
+                    return "\u000a"
+            return "@" + word
+
+        string = re.sub(r"@(\w+)", elementFinder, string)
+
+    return string

@@ -129,8 +129,8 @@ def title(text: str):
     return str(Element("title", text, {}))
 
 
-def a(text: str, ref: str):
-    return str(Element("a", text, {"href": ref}))
+def a(text: str, ref: str, **kwds):
+    return str(Element("a", text, {"href": ref, **kwds}))
 
 
 def img(*childs, ref: str, **kwds):
