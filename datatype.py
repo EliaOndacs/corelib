@@ -13,6 +13,8 @@ type integer = int
 type boolean = bool
 type array = list
 
+type maybe[T] = T|None
+
 type pointer[T] = int
 type carry[T] = T
 NULL = 0
@@ -44,6 +46,7 @@ class Error:
     def new(cls, name: str, message: str) -> "Error":
         return Error(name, message)
 
+type ErrorOrNone = Error|None
 
 class Object:
     @classmethod
