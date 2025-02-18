@@ -68,7 +68,7 @@ def CacheStorage(app_class: ApplicationClass) -> Path:
 class RuntimeStorage:
     def __init__(self, app_class) -> None:
         self.app_class = app_class
-        self.runtime_storage_path = RuntimeStorage.get_runtime_path(app_class)
+        self.rt_path = RuntimeStorage.get_runtime_path(app_class)
         self._runtime_storage: dict[str, Any] = {}
 
     @classmethod
@@ -96,7 +96,7 @@ class RuntimeStorage:
         raise OSError(f"un-supported operating system")
 
     def open(self, filename: str, mode: str = "r"):
-        return (self.runtime_storage_path / filename).open(mode=mode)
+        return (self.rt_path / filename).open(mode=mode)
 
     def set(self, variable: str, value: Any):
         self._runtime_storage[variable] = value

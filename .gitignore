@@ -2,3 +2,4 @@ __pycache__
 EoSocket.py
 streams.py
 textbase.py
+pxe.py
