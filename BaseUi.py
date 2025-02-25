@@ -1305,7 +1305,7 @@ def table(data: list[list[str]], style: Style | None = None) -> str:
     style = get_style(style)
     if style:
         left = style.get("Table.left", "[")
-        right = style.get("Tabel.right", "]")
+        right = style.get("Table.right", "]")
     else:
         left = "["
         right = "]"

@@ -1,4 +1,4 @@
-from typing import Any, TypedDict, Literal, Callable, Optional, Type
+from typing import Any, Iterable, TypedDict, Literal, Callable, Optional, Type
 
 type Treenode[T] = tuple[T, list[Treenode[T]]]
 type Treeroot[T] = list[Treenode[T]]
@@ -13,13 +13,14 @@ type integer = int
 type boolean = bool
 type array = list
 
-type maybe[T] = T|None
+type maybe[T] = T | None
 
 type pointer[T] = int
 type carry[T] = T
 NULL = 0
 EXIT_FAILURE = -1
 EXIT_SUCCESSFULL = 0
+
 
 class bind[T]:
     def __init__(self, obj: T) -> None:
@@ -46,14 +47,16 @@ class Error:
     def new(cls, name: str, message: str) -> "Error":
         return Error(name, message)
 
-type ErrorOrNone = Error|None
+
+type ErrorOrNone = Error | None
+
 
 class Object:
     @classmethod
     def new[T](cls, obj: type[T], *args, **kwargs) -> T:
         new = obj.__new__(obj)
         if hasattr(new, "__init__"):
-            new.__init__(*args, **kwargs) # type: ignore
+            new.__init__(*args, **kwargs)  # type: ignore
         return new
 
     @classmethod
@@ -81,30 +84,92 @@ class Object:
         return obj.__dict__  # type: ignore
 
 
+class char:
+    "a type for working with one u8 character"
+
+    @classmethod
+    def split(cls, text: str) -> Iterable["char"]:
+        r = []
+        for c in text:
+            r.append(char(c))
+        return r
+
+    def __init__(self, char: str):
+        if len(char) > 1:
+            raise MemoryError(
+                f"expected one character but got a string with the length of {len(char)}"
+            )
+        self._x = char[0].encode()
+
+    def __ne__(self, other: object, /) -> bool:
+        return not self.__eq__(other)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, char):
+            raise TypeError(
+                f"unsupported operation '+' with the type 'char' and {type(other).__name__!r}"
+            )
+        return self._x == other._x
+
+    def __len__(self):
+        return len(self._x)
+
+    def __repr__(self):
+        return f"u8{self._x.decode()!r}"
+
+    def __str__(self):
+        return self._x.decode()
+
+    def upper(self) -> "char":
+        return char(self._x.decode().upper())
+
+    def lower(self) -> "char":
+        return char(self._x.decode().lower())
+
+    def join(self, array: Iterable) -> str:
+        return self._x.decode().join(array)
+
+    def __add__(self, other: "char") -> bytes:
+        if not isinstance(other, char):
+            raise TypeError(
+                f"unsupported operation '+' with the type 'char' and {type(other).__name__!r}"
+            )
+        return self._x + other._x
+
+    def __sizeof__(self) -> int:
+        return self._x.__sizeof__()
+
+
 class DatatypeBlueprint(TypedDict):
     fields: dict[str, Any]
+
 
 type book = dict[int, str]
 "a type that inherits `dict` for storing data in a `page: text` manner."
 
+
 def mkbook() -> book:
     "creates a new book object"
     return {}
+
 
 def setpage(Book: book, page: int, text: str) -> book:
     "set a page content in a book"
     Book[page] = text
     return Book
 
-def getpage(Book: book, page: int) -> str|None:
+
+def getpage(Book: book, page: int) -> str | None:
     "gets the content of a page from a book"
     return Book.get(page, None)
 
-def delpage(Book: book, page: int) -> Literal[-1]|book:
+
+def delpage(Book: book, page: int) -> Literal[-1] | book:
     "reset a page content in a book"
     if not (page in Book):
         return -1
     return setpage(Book, page, "")
+
 
 def check_type(model: dict, blueprint: DatatypeBlueprint) -> bool:
     "returns True if all the types were corrected, False if they were wrong"
