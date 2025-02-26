@@ -104,24 +104,20 @@ class r:
         return _check
 
     @classmethod
-    def string_length(cls, min_length: int = 0, max_length: Optional[int] = None):
+    def length(cls, min_length: int = 0, max_length: Optional[int] = None):
         def _check(item, key):
-            if not isinstance(item, str):
-                raise TypeError(
-                    f"expected a string for key {key!r}, got {type(item).__name__!r}"
-                )
             if len(item) < min_length or (
                 max_length is not None and len(item) > max_length
             ):
                 raise ValueError(
-                    f"length of string for key {key!r} must be between {min_length} and {max_length}"
+                    f"length of key {key!r} must be between {min_length} and {max_length}"
                 )
             return True
 
         return _check
 
     @classmethod
-    def string_pattern(cls, pattern: str):
+    def pattern(cls, pattern: str):
         regex = re.compile(pattern)
 
         def _check(item, key):
@@ -138,7 +134,7 @@ class r:
         return _check
 
     @classmethod
-    def number_range(
+    def range(
         cls,
         min_value: Union[int, float] = float("-inf"),
         max_value: Union[int, float] = float("inf"),

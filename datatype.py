@@ -1,4 +1,5 @@
 from typing import Any, Iterable, TypedDict, Literal, Callable, Optional, Type
+from functools import wraps
 
 type Treenode[T] = tuple[T, list[Treenode[T]]]
 type Treeroot[T] = list[Treenode[T]]
@@ -82,6 +83,16 @@ class Object:
     @classmethod
     def getdict(cls, obj: object) -> dict[str, Any]:
         return obj.__dict__  # type: ignore
+
+
+def makeobj(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        namespace = func(*args, **kwargs) or {}
+        return type(func.__name__, (object,), namespace)()
+
+    func.__annotations__["return"] = type(func.__name__, (object,), {})
+    return wrapper
 
 
 class char:
