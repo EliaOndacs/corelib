@@ -1489,3 +1489,34 @@ def prettify(string: str, setting: Setting|None = None) -> str:
         string = re.sub(r"@(\w+)", elementFinder, string)
 
     return string
+
+class StrNode:
+    def __init__(self, innerText: str, id: str|None = None, attributes: dict|None = None, setting: Setting|None = None):
+        self.innerText = innerText
+        self.setting = get_setting(setting)
+        self.id = id
+        self.attributes = attributes or {}
+
+    def __str__(self) -> str:
+        if self.setting:
+            processor = self.setting.get("StrNode.processor", lambda string: string)
+        else:
+            processor = lambda string: string
+        return processor(str(self.innerText))
+
+class StrGroup:
+    def __inti__(self, nodes: list["StrNode|StrGroup"], id: str|None = None, attributes: dict|None = None):
+        self.nodes = nodes
+        self.id = id
+        self.attributes = attributes or {}
+
+    def query(self, id: str):
+        results = []
+        for node in self.nodes:
+            if node.id == id:
+                results.append(node)
+        return results
+
+    def __str__(self) -> str:
+        return "".join(self.nodes)
+
