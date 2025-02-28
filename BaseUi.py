@@ -1518,5 +1518,5 @@ class StrGroup:
         return results
 
     def __str__(self) -> str:
-        return "".join(self.nodes)
+        return "".join(map(str, self.nodes))
 
