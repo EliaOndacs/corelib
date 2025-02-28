@@ -5,10 +5,12 @@ inspired by zod from @colinhacks
 """
 
 from dataclasses import dataclass, field
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, get_type_hints
 import re
 
+
 class r:
+    "r validator class and default provided checkers"
 
     @dataclass
     class robject:
@@ -36,6 +38,24 @@ class r:
                 )
             for elm in item:
                 if not r._check_type(elm, inner_type, key):
+                    raise TypeError(f"invalid item in list for key {key!r}")
+            return True
+
+        return _check
+
+    @classmethod
+    def OrderedList(cls, *checkers_in_order):
+        def _check(item, key):
+            if not isinstance(item, list):
+                raise TypeError(
+                    f"expected a list for the key {key!r}, got {type(item).__name__!r} instead!"
+                )
+            if len(item) != len(checkers_in_order):
+                raise TypeError(
+                    f"expected the length of the list {item} be {len(checkers_in_order)} instead!"
+                )
+            for index, elm in enumerate(item):
+                if not r._check_type(elm, checkers_in_order[index], key):
                     raise TypeError(f"invalid item in list for key {key!r}")
             return True
 
@@ -81,6 +101,8 @@ class r:
             for key in reference:
                 checker = reference[key]
                 real = node[key]
+                if isinstance(checker, list):
+                    checker = r.OrderedList(*checker)
                 if isinstance(checker, dict):
                     visit_node(checker, real)
                 elif not r._check_type(real, checker, key):
@@ -186,4 +208,9 @@ class r:
             return r.ListType(inner_type)(item, key)
 
         return _check
+
+def robject(cls):
+    "a class decorator for people that feels more comfortable with the python class syntax"
+    hints = get_type_hints(cls)
+    return r.robject(hints)
 
