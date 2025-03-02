@@ -1317,7 +1317,7 @@ def table(data: list[list[str]], style: Style | None = None) -> str:
     def row(datas: list[str], widths: list[int]) -> str:
         return "".join(cell(data, widths[i]) for i, data in enumerate(datas))
 
-    widths = [max(len(str(item)) for item in column) for column in zip(*data)]
+    widths = [max(Measurements.measure(str(item)).columns for item in column) for column in zip(*data)]
 
     return "\n".join(row(datas, widths) for datas in data)
 
