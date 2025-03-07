@@ -92,12 +92,20 @@ class r:
         return _check
 
     @classmethod
-    def validate(cls, structure: robject, data: dict):
+    def validate(
+        cls, structure: robject, data: dict, *, strict: bool = True, error: bool = True
+    ):
         def visit_node(reference: dict, node: dict):
-            if reference.keys() != node.keys():
-                raise TypeError(
-                    f"expected a data with the following fields: {reference.keys()}, got {node.keys()} instead!"
-                )
+            if strict:
+                if reference.keys() != node.keys():
+                    raise TypeError(
+                        f"expected a data with the following fields: {reference.keys()}, got {node.keys()} instead!"
+                    )
+            else:
+                if not (node.keys() in reference.keys()):
+                    raise TypeError(
+                        f"expected a data with the following fields: {reference.keys()}, got {node.keys()} instead!"
+                    )
             for key in reference:
                 checker = reference[key]
                 real = node[key]
@@ -111,8 +119,15 @@ class r:
                     )
             return True
 
-        result = visit_node(structure.structure, data)
-        structure.valitation_history.append(result)
+        try:
+            result = visit_node(structure.structure, data)
+            structure.valitation_history.append(result)
+        except TypeError as err:
+            if error:
+                raise err
+            result = False
+            structure.valitation_history.append(result)
+            return result
 
     @classmethod
     def constant(cls, value):
@@ -209,8 +224,8 @@ class r:
 
         return _check
 
+
 def robject(cls):
     "a class decorator for people that feels more comfortable with the python class syntax"
     hints = get_type_hints(cls)
     return r.robject(hints)
-
