@@ -1,5 +1,4 @@
-import os
-import sys
+from functools import partial
 
 
 class Symbol[OptionalTyping]:
@@ -10,17 +9,11 @@ class Symbol[OptionalTyping]:
         return str(self.data) if self.data else "[ object of type symbol ]"
 
 
-class entry:
-    "function decorator for the program entry function"
+def bind(data: object):
+    "bind a object to function"
 
-    def __init__(self, function) -> None:
-        try:
-            code = function()
-            if code:
-                os._exit(code)
-            os._exit(0)
-        except KeyboardInterrupt:
-            os._exit(-1)
-        except Exception as err:
-            sys.excepthook(type(err), err, err.__traceback__)
-            os._exit(-1)
+    def decorator(func):
+        return partial(func, data)
+
+    return decorator
+

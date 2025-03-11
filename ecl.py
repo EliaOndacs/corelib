@@ -1,3 +1,5 @@
+"WARNING: THIS MODULE IS NOT RECOMMENDED FOR REAL USE"
+
 from shlex import shlex
 from dataclasses import dataclass
 from typing import Any

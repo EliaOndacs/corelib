@@ -1,8 +1,7 @@
 "a library to mimic api's from javascript :skull:"
 
 import httpx
-from typing import Optional, Union, Dict, Any
-
+from typing import Callable, Optional, Union, Dict, Any
 
 async def fetch(
     url: str,
@@ -42,3 +41,6 @@ async def fetch(
             follow_redirects=allow_redirects,
         )
         return response
+
+
+

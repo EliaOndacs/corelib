@@ -3,3 +3,5 @@ EoSocket.py
 streams.py
 textbase.py
 pxe.py
+domlib.py
+cms.py

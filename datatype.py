@@ -1,5 +1,6 @@
-from typing import Any, Iterable, TypedDict, Literal, Callable, Optional, Type
+from typing import Any, Iterable, TypedDict, Literal
 from functools import wraps
+from warnings import deprecated
 
 type Treenode[T] = tuple[T, list[Treenode[T]]]
 type Treeroot[T] = list[Treenode[T]]
@@ -21,19 +22,6 @@ type carry[T] = T
 NULL = 0
 EXIT_FAILURE = -1
 EXIT_SUCCESSFULL = 0
-
-
-class bind[T]:
-    def __init__(self, obj: T) -> None:
-        self.obj_id: int = id(obj)
-        self.obj_name: str = type(obj).__name__
-        self.obj: T = obj
-
-    def __get__(self, *_):
-        return self.obj
-
-    def __repr__(self) -> str:
-        return repr(self.obj)
 
 
 class Error:
@@ -151,6 +139,7 @@ class char:
         return self._x.__sizeof__()
 
 
+@deprecated("use `corelib/rod.py` type validation library instead!")
 class DatatypeBlueprint(TypedDict):
     fields: dict[str, Any]
 
@@ -181,7 +170,7 @@ def delpage(Book: book, page: int) -> Literal[-1] | book:
         return -1
     return setpage(Book, page, "")
 
-
+@deprecated("use `corelib/rod.py` type validation library instead!")
 def check_type(model: dict, blueprint: DatatypeBlueprint) -> bool:
     "returns True if all the types were corrected, False if they were wrong"
     result = True
