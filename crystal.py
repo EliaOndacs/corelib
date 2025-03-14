@@ -51,26 +51,3 @@ def component[T](func: Callable[[Component[T]], T]) -> Component[T]:
     return c
 
 
-@component
-def Counter(this: Component[str]) -> str:
-    count, setCount = this.useState(0)
-    count2, setCount2 = this.useState(7 - count)
-    return f"count<A>: {setCount(count + 1)} count<B>: {setCount2(count2 - 1)}"
-
-
-def main():
-
-    print(Counter.render())
-    print(Counter.render())
-    print(Counter.render())
-    print(Counter.render())
-    print(Counter.render())
-    print(Counter.render())
-
-    return
-
-
-if __name__ == "__main__":
-    main()
-# end main
-
