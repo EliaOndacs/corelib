@@ -97,6 +97,10 @@ class Component[ReturnType]:
     def useStateName(self):
         return f"slot_{self._slot_n-1}"
 
+    def __call__(self, **kwargs) -> ReturnType:
+        self.props.update(kwargs)
+        return self.render()
+        
     def bindLifecycleEvent(
         self,
         event: Literal[
