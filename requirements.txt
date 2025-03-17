@@ -1,0 +1,7 @@
+rich
+ansi
+click
+bs4
+sqllex
+flask
+pygments
