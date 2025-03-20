@@ -1,6 +1,6 @@
 from functools import partial
-from typing import Callable, Protocol
-import sys
+from typing import Callable, Protocol, Generator
+import sys, time
 
 
 class Symbol[OptionalTyping]:
@@ -71,3 +71,10 @@ class TerminalDriver(Driver):
             self.data(call)
         else:
             raise RuntimeError(f"unsupported driver call: {call!r}")
+
+def sequencer[T](pattern: str, function: Callable[[str], T], *, wait: float|int = 0) -> Generator[T, None, None]:
+    for char in pattern:
+        yield function(char)
+        if wait != 0:
+            time.sleep(wait)
+

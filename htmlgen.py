@@ -16,10 +16,13 @@ def _unfilter_attributes(attrs: dict[str, Any]) -> dict[str, Any]:
     return new
 
 
-def _generate_attributes(attrs: dict[str, Any]) -> str:
+def _generate_attributes(attrs: dict[str, Any], *, use_single_keys=True) -> str:
     result = ""
     attrs = _unfilter_attributes(attrs)
     for key in attrs:
+        if use_single_keys == False:
+            result += f' {key}="{attrs[key]}"'
+            continue
         if key in [
             "controls",
             "loop",
@@ -31,7 +34,7 @@ def _generate_attributes(attrs: dict[str, Any]) -> str:
             "autofocus",
             "multiple",
             "novalidate",
-            "defer"
+            "defer",
         ]:
             result += f" {key}"
         else:

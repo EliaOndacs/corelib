@@ -63,12 +63,12 @@ class Component[ReturnType]:
 
     def render(self) -> ReturnType:
         self._slot_n = 0
-        if self._is_mounted == False:
-            self.componentDidMount()  # Call when the component is mounted
-            self._is_mounted = True
         result = self.func(self, **self.props)
         if self._is_mounted == True:
             self.componentDidUpdate()  # Call after rendering
+        if self._is_mounted == False:
+            self.componentDidMount()  # Call when the component is mounted
+            self._is_mounted = True
         return result
 
     def export(self, obj: object):

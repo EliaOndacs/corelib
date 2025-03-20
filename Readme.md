@@ -17,6 +17,7 @@ side a simple description:
 - [BaseUi](BaseUi.py) = the corelib tui solution.
 - [BaseGUi](BaseGUi.py) = tkinter with better interface.
 - [crystal](crystal.py) = mvc+component architecture for your code, inspired by react.js.
+- [eventquery](eventquery.py) = an event system for python.
 - [htmlgen](htmlgen.py) = a library that allows you to make/write html code much easier.
 - [cssgen](cssgen.py) = a library that allows you to easily generate your css in python using dictionaries and more.
 - [datatype](datatype.py) = a library for better typing your code.
