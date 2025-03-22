@@ -38,7 +38,7 @@ side a simple description:
 - [telements](telements.py) = _co-exists_.
 - [userbase](userbase.py) = handles user management and grouping for you.
 - [libx] = _co-exists_.
-- [datamodel](datamodel.py) = python data generation library.
+- [datamodel](datamodel.py) = python data recognition library.
 
 ### Contribution
 

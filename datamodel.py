@@ -1,96 +1,41 @@
 """
-a library for data generation
-
+a library for recognizing
+diffrent data types/models
 """
 
-import re
-from types import FunctionType, ModuleType
-from typing import Any, Callable, Protocol
+from typing import Protocol, runtime_checkable
 
 
-class SupportsStr(Protocol):
-    def __str__(self) -> str: ...
+@runtime_checkable
+class Model(Protocol):
+    "the base object for all model"
+
+    pattern: str
 
 
-def datamodel(model: dict[str, type]):
-    """
-    allows you to make datamodel's that you can use later
-    to make structured data
-    """
-
-    def __call__(**kwargs) -> dict:
-        new: dict[str, Any] = {}
-        for key in model:
-            value = kwargs.get(key, None)
-            if not value:
-                raise KeyError(f"key {key!r} not found in the provided data")
-            if type(value).__name__ != model[key].__name__:
-                raise TypeError(
-                    f"key {key!r} should be a type of {model[key].__name__!r}, found {type(value).__name__!r} instead"
-                )
-            new[key] = value
-        return new
-
-    return __call__
+class Number(Model):
+    pattern = r"-?\d+(\.\d+)?"
 
 
-def repeat(data: SupportsStr, times: int):
-    return str(data) * times
+class Email(Model):
+    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 
 
-def string(data: SupportsStr):
-    return str(data)
+class PhoneNumber(Model):
+    pattern = r"^\+?[1-9]\d{0,2}[-.\s]?(\(?\d{1,4}?\)?[-.\s]?)?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$"
 
 
-def number(data: str | int):
-    try:
-        return int(data)
-    except:
-        raise ValueError(f"expected a integer number, got {data!r} instead!")
+class IPV4(Model):
+    pattern = r"^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}$"
 
 
-def boolean(data: str):
-    match data:
-        case "true" | "True":
-            return True
-        case "false" | "False":
-            return False
-    raise ValueError(
-        f"expected a string of 'true|True' or 'false|False', got {data!r} instead!"
-    )
+class IPV6(Model):
+    pattern = r"^(([0-9a-fA-F]{1,4}:){7}([0-9a-fA-F]{1,4}|:)|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$"
 
 
-def array(data: str):
-    return data.split(",")
+class JSON(Model):
+    pattern = r"^\s*(\{(?:[^{}]|(?R))*\}|\[(?:[^\[\]]|(?R))*\])\s*$"
 
 
-def apply[T](data: list[T], transform: Callable[[T], Any]) -> list[Any | T]:
-    return list(filter(transform, data))
-
-
-def retype(value: str):
-    number_pattern = r"^-?\d+$"
-    boolean_pattern = r"^(true|True|false|False)$"
-    ismatch = lambda b: bool(re.match(value, b))
-    if ismatch(number_pattern):
-        return number(value)
-    elif ismatch(boolean_pattern):
-        return boolean(value)
-    return string(value)
-
-
-def groupBy[T](data: list[T], key_func: Callable[[T], Any]):
-    grouped: dict = {}
-    for item in data:
-        key = key_func(item)
-        if key not in grouped:
-            grouped[key] = []
-        grouped[key].append(item)
-    return grouped
-
-
-def pymodule(name: str, namespace: dict) -> ModuleType:
-    module = ModuleType(name)
-    exec(f"globals().update({namespace})", module.__dict__)
-    return module
-
+class Boolean(Model):
+    pattern = r"^(?i)(true|false)$"
