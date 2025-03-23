@@ -91,7 +91,7 @@ class Component[ReturnType]:
             self.state[name] = value
             self.componentDidStateUpdate(name, value)
             return self.state[name]
-
+        
         return self.state[name], setMethod
 
     def useStateName(self):
@@ -135,3 +135,28 @@ def createComponent[T](func: Callable[..., T]) -> Component[T]:
     c: Component[T] = Component(func.__name__, keygen(), {}, func)
     c.__doc__ = func.__doc__
     return c
+
+# state management
+
+class StateStore:
+    def __init__(self, initial_state):
+        self.state = initial_state
+        self.subscribers = []
+
+    def reducer(self, func):
+        self.reducer_func = func
+
+    def dispatch(self, action):
+        self.state = self.reducer_func(self.state, action)
+        self.notify_subscribers()
+
+    def select(self, key):
+        return self.state.get(key), lambda action: self.dispatch(action)
+
+    def notify_subscribers(self):
+        for subscriber in self.subscribers:
+            subscriber(self.state)
+
+    def subscribe(self, callback):
+        self.subscribers.append(callback)
+

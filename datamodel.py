@@ -14,7 +14,7 @@ class Model(Protocol):
 
 
 class Number(Model):
-    pattern = r"-?\d+(\.\d+)?"
+    pattern = r"-?\d+"
 
 
 class Email(Model):
