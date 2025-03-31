@@ -15,10 +15,10 @@ class context[T]:
     _status: ContextStatus
     _gt: dict[str, Any]
 
-    def __init__(self) -> None:
+    def __init__(self, initial: T|None = None) -> None:
         self._gt = {}
         self.status: ContextStatus = 0
-        self.value: T | None = None
+        self.value: T | None = initial
 
     @property
     def status(self) -> ContextStatus: # type: ignore

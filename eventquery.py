@@ -18,7 +18,7 @@ EventQuery[T]:
 
 from dataclasses import dataclass
 from typing import Callable
-
+from queue import Queue
 
 @dataclass
 class Event[T]:
@@ -30,10 +30,10 @@ class Event[T]:
 type EventCallback[T] = Callable[[Event[T]], None]
 "callback function called on an new event"
 
-_event_queue: list[Event] = []
+_event_queue: Queue[Event] = Queue()
 "global queue/list to store all events"
 
-_event_queue_subscribers: list[EventCallback] = []
+_event_queue_subscribers: Queue[EventCallback] = Queue()
 "global list of subscribers to the event queue/list"
 
 
@@ -46,7 +46,7 @@ def clearEvents() -> None:
     """
 
     global _event_queue
-    _event_queue.clear()
+    _event_queue = Queue()
 
 
 def emitEvent(etype: object, value: object) -> None:
@@ -57,8 +57,8 @@ def emitEvent(etype: object, value: object) -> None:
 
     global _event_queue, _event_queue_subscribers
     event = Event(etype, value)
-    _event_queue.append(event)
-    for callback in _event_queue_subscribers:
+    _event_queue.put(event)
+    for callback in _event_queue_subscribers.queue:
         callback(event)
 
 
@@ -73,7 +73,7 @@ class EventQuery[T]:
         "the amount of event with this type"
 
         filterLambda = lambda e: e.etype == self.etype
-        filterResult = list(filter(filterLambda, _event_queue))
+        filterResult = list(filter(filterLambda, _event_queue.queue))
         return len(filterResult)
 
     def wait(self) -> Event[T]:
@@ -85,7 +85,7 @@ class EventQuery[T]:
 
         _wait = True
         while _wait:
-            event = _event_queue[-1]
+            event = _event_queue.queue[-1]
             if event.etype == self.etype:
                 _wait = False
         return event  # type: ignore
@@ -93,7 +93,7 @@ class EventQuery[T]:
     def onEvent(self, callback: EventCallback[T]) -> None:
         "add a callback on this event"
 
-        @_event_queue_subscribers.append
+        @_event_queue_subscribers.put
         def _(event: Event[T]):
             if event.etype == self.etype:
                 callback(event)

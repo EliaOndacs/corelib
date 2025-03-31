@@ -1,7 +1,9 @@
 
 def host(text: str, address: tuple[str, int], **kwds):
     from flask import Flask
-    _app = Flask(__name__)
-    _app.route("/")((lambda: text))
-    _app.run(address[0], address[1], **kwds)
+    _app = Flask("easyhost")
+    @_app.get("/")
+    def home():
+        return text
+    _app.run(host=address[0], port=address[1], **kwds)
 

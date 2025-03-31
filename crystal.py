@@ -1,5 +1,6 @@
 from typing import Callable, Literal
 from dataclasses import dataclass, field
+from functools import wraps
 
 _ki: int = -1
 
@@ -24,6 +25,9 @@ class Component[ReturnType]:
     _is_mounted: bool = False
     _slot_n: int = field(default_factory=int)
     _previous_state: dict = field(default_factory=dict)
+
+    def __hash__(self) -> int:
+        return hash(self.key)
 
     def setState(self, name: str, value: object):
         self._previous_state[name] = self.state.get(name)
@@ -61,9 +65,9 @@ class Component[ReturnType]:
     def componentDidStateUpdate(self, name: str, value: object):
         """Called when a state in a component is being updated."""
 
-    def render(self) -> ReturnType:
+    def render(self, children) -> ReturnType:
         self._slot_n = 0
-        result = self.func(self, **self.props)
+        result = self.func(self, *children, **self.props)
         if self._is_mounted == True:
             self.componentDidUpdate()  # Call after rendering
         if self._is_mounted == False:
@@ -91,16 +95,16 @@ class Component[ReturnType]:
             self.state[name] = value
             self.componentDidStateUpdate(name, value)
             return self.state[name]
-        
+
         return self.state[name], setMethod
 
     def useStateName(self):
         return f"slot_{self._slot_n-1}"
 
-    def __call__(self, **kwargs) -> ReturnType:
+    def __call__(self, *children, **kwargs) -> ReturnType:
         self.props.update(kwargs)
-        return self.render()
-        
+        return self.render(children)
+
     def bindLifecycleEvent(
         self,
         event: Literal[
@@ -133,10 +137,22 @@ class Component[ReturnType]:
 
 def createComponent[T](func: Callable[..., T]) -> Component[T]:
     c: Component[T] = Component(func.__name__, keygen(), {}, func)
+    c.__name__ = func.__name__  # type: ignore
     c.__doc__ = func.__doc__
     return c
 
+
+def mkinstance[T](component: Component[T]) -> Component[T]:
+    c: Component[T] = Component(
+        component.name, keygen(), component.props, component.func
+    )
+    c.__name__ = component.func.__name__  # type: ignore
+    c.__doc__ = component.func.__doc__
+    return c
+
+
 # state management
+
 
 class StateStore:
     def __init__(self, initial_state):
@@ -159,4 +175,3 @@ class StateStore:
 
     def subscribe(self, callback):
         self.subscribers.append(callback)
-

@@ -25,6 +25,7 @@ side a simple description:
 - [makefs](makefs.py) = makes it way easier to generate filesystem structures.
 - [skip](skip.py) = a virtual machine schema and a node visitor.
 - [paintbucket](paintbucket.py) = a terminal ansi renderer.
+- [server dom](serverdom.py) = a browser dom implementation for server ad client side python
 - [stream](stream.py) = a library that makes working with generators much better.
 - [bsui_excepthook](bsui_excepthook.py) = better errors in python.
 - [BaseUiThemes](BaseUiThemes.py) = stock themes for baseui.
