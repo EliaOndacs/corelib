@@ -8,7 +8,6 @@ from dataclasses import dataclass, field
 from typing import Callable, Optional, Union, get_type_hints
 import re
 
-
 class r:
     "r validator class and default provided checkers"
 
@@ -92,6 +91,16 @@ class r:
         return _check
 
     @classmethod
+    def multicheck(cls, *checkers):
+        def _check(item, key):
+            for checker in checkers:
+                if not r._check_type(item, checker, key):
+                    return False
+            return True
+
+        return _check
+
+    @classmethod
     def validate(
         cls, structure: robject, data: dict, *, strict: bool = True, error: bool = True
     ):
@@ -122,12 +131,13 @@ class r:
         try:
             result = visit_node(structure.structure, data)
             structure.valitation_history.append(result)
-        except TypeError as err:
-            if error:
+        except (TypeError, ValueError) as err:
+            if error == True:
                 raise err
             result = False
             structure.valitation_history.append(result)
             return result
+        return True
 
     @classmethod
     def constant(cls, value):

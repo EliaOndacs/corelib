@@ -14,6 +14,7 @@ here is the list of modules in corelib along
 side a simple description:
 
 - [rod](rod.py) = a minimal and extensible validation library.
+- [deta](detacls.py) = deta is a flexible library for creating and managing typed data containers with built-in validation, modification, and metadata support.
 - [BaseUi](BaseUi.py) = the corelib tui solution.
 - [BaseGUi](BaseGUi.py) = tkinter with better interface.
 - [crystal](crystal.py) = mvc+component architecture for your code, inspired by react.js.
