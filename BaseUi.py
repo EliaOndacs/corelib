@@ -1,7 +1,7 @@
 """
 **BaseUi**
 
-the base ui library for a centralized theme cli ui among SysCoreutil & SysEnv
+text-based ui library
 
 """
 
@@ -13,6 +13,7 @@ from typing import (
     Literal,
     Protocol,
     Callable,
+    overload,
     runtime_checkable,
 )
 from warnings import deprecated
@@ -60,6 +61,17 @@ class codes(StrEnum):
     HOME = "\x1b[H"
 
 
+class _Style(Protocol):
+    __data__: dict[str, Any]
+
+    def __setitem__(self, key: str, value: Any) -> None: ...
+    def __getitem__(self, key: str) -> Any: ...
+    @overload  # type: ignore[override]
+    def get(self, key: str, /) -> Any | None: ...
+    @overload
+    def get(self, key: str, default: Any, /) -> Any: ...
+
+
 class Style:
     "style object for all styles of all components"
 
@@ -77,7 +89,7 @@ class Style:
         return self.__data__[key]
 
 
-def mergeStyles(style_A: Style, style_B: Style):
+def mergeStyles(style_A: _Style, style_B: _Style):
     return Style({**style_A.__data__, **style_B.__data__})
 
 
@@ -120,7 +132,7 @@ def make_auto(_type, instance):
     raise TypeError(f"type {_type!r} it not supported as an auto object!")
 
 
-def get_style(style: Style | None):
+def get_style(style: _Style | None):
     "get the the auto style if exists or None or the past style pram"
     if style:
         return style
@@ -343,7 +355,7 @@ def deleteText(text: str):
 ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
-def smartborder(string, padding=1, style: Style | None = None):
+def smartborder(string, padding=1, style: _Style | None = None):
     "a more complex functionalitie for creating and adding borders to text, this function allows you to make more complex borders"
     style = get_style(style)
     if style:
@@ -381,7 +393,7 @@ def smartborder(string, padding=1, style: Style | None = None):
     return "\n".join(bordered_lines)
 
 
-def border(string, padding=1, style: Style | None = None):
+def border(string, padding=1, style: _Style | None = None):
     "function to add border to a string"
     style = get_style(style)
     if style:
@@ -431,7 +443,7 @@ class ProgressBar:
         default: int = 0,
         max: int = 100,
         size: int = 10,
-        style: Style | None = None,
+        style: _Style | None = None,
     ) -> None:
         self.value = default
         self.max = max
@@ -512,7 +524,7 @@ class DataTable:
         def __init__(self, *cols) -> None:
             self.cols = cols
 
-    def __init__(self, style: Style | None = None) -> None:
+    def __init__(self, style: _Style | None = None) -> None:
         self.data: list["DataTable.Row"] = []
         self.style = get_style(style)
 
@@ -624,7 +636,7 @@ class SwitchText:
 class Input:
     "Input Component (Gets The Input On Render!)"
 
-    def __init__(self, prompt: str = "", style: Style | None = None):
+    def __init__(self, prompt: str = "", style: _Style | None = None):
         self.prompt = prompt
         self.style = get_style(style)
 
@@ -650,7 +662,7 @@ class Bar:
     "Bar Seperates Multiple Items In One Line"
 
     def __init__(
-        self, *cols, style: Style | None = None, active: int | None = None
+        self, *cols, style: _Style | None = None, active: int | None = None
     ) -> None:
         self.cols = cols
         self.active = active
@@ -680,7 +692,7 @@ class Icon:
 class Chain:
     "Chain Desighn, A Chain For A Chain Of Values"
 
-    def __init__(self, *cols, style: Style | None = None):
+    def __init__(self, *cols, style: _Style | None = None):
         self.cols = cols
         self.style = get_style(style)
 
@@ -780,7 +792,7 @@ def joinlines(*lines: str):
 class Select:
     "MultiChoice Menu (Composition DataTable)"
 
-    def __init__(self, choices: list[str], style: Style | None = None) -> None:
+    def __init__(self, choices: list[str], style: _Style | None = None) -> None:
         self.dt = DataTable(style)
         self.choices = choices
         self.style = get_style(style)
@@ -823,7 +835,7 @@ class Br:
 class Ruler:
     "A Ruller Object that can display a length of numbers"
 
-    def __init__(self, lenght: int, style: Style | None = None) -> None:
+    def __init__(self, lenght: int, style: _Style | None = None) -> None:
         self.lenght = lenght
         self.style = get_style(style)
 
@@ -868,7 +880,7 @@ class Mark:
     _override_mode: None | tuple[str, str] = None
 
     def __init__(
-        self, string: str, mode: bool = False, style: Style | None = None
+        self, string: str, mode: bool = False, style: _Style | None = None
     ) -> None:
         self.string = string
         self.style = get_style(style)
@@ -906,7 +918,7 @@ class List:
     "A List Displayt Of multiple items"
 
     def __init__(
-        self, items: Iterable | list | tuple, style: Style | None = None
+        self, items: Iterable | list | tuple, style: _Style | None = None
     ) -> None:
         self.style = get_style(style)
         self.items = items
@@ -933,7 +945,7 @@ class List:
 class Compersition:
     "Show Relations between two object"
 
-    def __init__(self, a, b, style: Style | None = None) -> None:
+    def __init__(self, a, b, style: _Style | None = None) -> None:
         self.a = a
         self.b = b
         self.style = get_style(style)
@@ -998,7 +1010,7 @@ class Notification:
         self,
         message: str,
         severity: Literal["Error", "Info", "Warning"] | None = None,
-        style: Style | None = None,
+        style: _Style | None = None,
     ) -> None:
         self.message = message
         self.severity = severity
@@ -1171,7 +1183,7 @@ class Canvas:
 
 
 class ImportanceText:
-    def __init__(self, messages: str, style: Style | None = None) -> None:
+    def __init__(self, messages: str, style: _Style | None = None) -> None:
         self.messages = messages
         self.style = get_style(style)
 
@@ -1234,7 +1246,7 @@ class Paginator:
         self,
         default_page: int = 1,
         amount_of_pages: int = 5,
-        style: Style | None = None,
+        style: _Style | None = None,
     ) -> None:
         self.pages: int = amount_of_pages
         self.pageN = default_page + 1
@@ -1304,7 +1316,7 @@ class Scene(Renderable):
         return ""
 
 
-def table(data: list[list[str]], style: Style | None = None) -> str:
+def table(data: list[list[str]], style: _Style | None = None) -> str:
     "nice ascii tables"
     style = get_style(style)
     if style:
@@ -1330,7 +1342,7 @@ def table(data: list[list[str]], style: Style | None = None) -> str:
 
 
 def cell(
-    text: str, id: int, style: Style | None = None, setting: Setting | None = None
+    text: str, id: int, style: _Style | None = None, setting: Setting | None = None
 ):
     return {
         "text": text,
@@ -1394,7 +1406,7 @@ def t(string: str) -> Callable:
     return __call__
 
 
-def indent(text: str, style: Style | None = None) -> str:
+def indent(text: str, style: _Style | None = None) -> str:
     style = get_style(style)
     if style:
         indentation = style.get("indent", "    ")
@@ -1547,7 +1559,7 @@ class StrGroup:
 
 
 class Statusline(Renderable):
-    def __init__(self, data: list[Renderable], style: Style | None = None):
+    def __init__(self, data: list[Renderable], style: _Style | None = None):
         self.style = get_style(style)
         self.data: list[str] = list(map(str, data))
 
@@ -1565,7 +1577,7 @@ class Statusline(Renderable):
 
 
 class Clock(Renderable):
-    def __init__(self, style: Style | None = None) -> None:
+    def __init__(self, style: _Style | None = None) -> None:
         self.style = get_style(style)
 
     @property
@@ -1598,7 +1610,7 @@ class Clock(Renderable):
 
 
 class HighlightedLabel(Renderable):
-    def __init__(self, text: str, style: Style | None = None) -> None:
+    def __init__(self, text: str, style: _Style | None = None) -> None:
         self.text = Block(text)
         self.style = get_style(style)
 
@@ -1672,7 +1684,7 @@ class Meter(Renderable):
     _value: int
 
     def __init__(
-        self, initial: int, start: int, end: int, style: Style | None = None
+        self, initial: int, start: int, end: int, style: _Style | None = None
     ) -> None:
         assert end > start, "Meter: End Value Should Be Bigger Than The Start Value"
         assert (initial < end) or (
@@ -1744,7 +1756,7 @@ class Meter(Renderable):
         return result
 
 
-def linenumber(text: str, style: Style | None = None, *, data: str = "") -> str:
+def linenumber(text: str, style: _Style | None = None, *, data: str = "") -> str:
     processed = Block(text)
     style = get_style(style)
     if style:
@@ -1758,7 +1770,7 @@ def linenumber(text: str, style: Style | None = None, *, data: str = "") -> str:
 
 
 class Table:
-    def __init__(self, headers: list[str] | None = None, style: Style | None = None):
+    def __init__(self, headers: list[str] | None = None, style: _Style | None = None):
         self.headers = headers if headers else []
         self.headers = list(
             map(lambda string: Padding.center(string, Amount=2), self.headers)
@@ -1804,7 +1816,7 @@ class Table:
         return rendered_table
 
 
-def highlight(text: str, selection: Selection, style: Style | None = None):
+def highlight(text: str, selection: Selection, style: _Style | None = None):
     style = get_style(style)
     if style:
         code = style.get("Highlight.code", "\x1b[7m")
@@ -1829,7 +1841,7 @@ def highlight(text: str, selection: Selection, style: Style | None = None):
 
 
 class Summery:
-    def __init__(self, text: str, detail: str, style: Style | None = None) -> None:
+    def __init__(self, text: str, detail: str, style: _Style | None = None) -> None:
         self.text = text
         self.detail = Block(detail)
         self._flag = 0b0

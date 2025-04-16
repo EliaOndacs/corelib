@@ -117,6 +117,7 @@ class RuntimeStorage:
 def storage(name: str):
     _class: ApplicationClass = {"name": name, "platform": sys.platform}
     st = RuntimeStorage(_class)
+    st.load()
     try:
         yield st
     finally:

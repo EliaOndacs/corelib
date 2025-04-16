@@ -17,6 +17,7 @@ side a simple description:
 - [deta](detacls.py) = deta is a flexible library for creating and managing typed data containers with built-in validation, modification, and metadata support.
 - [BaseUi](BaseUi.py) = the corelib tui solution.
 - [BaseGUi](BaseGUi.py) = tkinter with better interface.
+- [app circuit](appcircuit.py) = application browser
 - [crystal](crystal.py) = mvc+component architecture for your code, inspired by react.js.
 - [eventquery](eventquery.py) = an event system for python.
 - [htmlgen](htmlgen.py) = a library that allows you to make/write html code much easier.

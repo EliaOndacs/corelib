@@ -1,9 +1,13 @@
-from typing import Any, Iterable, TypedDict, Literal
+from typing import Any, Callable, Iterable, TypedDict, Literal
 from functools import wraps
 from warnings import deprecated
 
 type Treenode[T] = tuple[T, list[Treenode[T]]]
 type Treeroot[T] = list[Treenode[T]]
+
+type ReadMethod[T] = Callable[[], T]
+type WriteMethod[T] = Callable[[T], None]
+type AttributeWriter[T] = Callable[[T], T]
 
 type static[T] = T
 type dynamic[T] = T

@@ -17,8 +17,9 @@ EventQuery[T]:
 """
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import Any, Callable
 from queue import Queue
+
 
 @dataclass
 class Event[T]:
@@ -48,8 +49,7 @@ def clearEvents() -> None:
     global _event_queue
     _event_queue = Queue()
 
-
-def emitEvent(etype: object, value: object) -> None:
+def emitEvent(etype: object, value: object | None = None) -> None:
     """
     emit an event with the following event type and value.
 
@@ -99,7 +99,6 @@ class EventQuery[T]:
                 callback(event)
 
 
-def queryEvent(etype: object) -> EventQuery[object]:
+def queryEvent(etype: object) -> EventQuery[Any]:
     "query a specific type of event"
     return EventQuery(etype)
-
