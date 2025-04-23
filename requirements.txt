@@ -6,4 +6,5 @@ flask
 sqllex
 pygments
 sanic
+uvicorn
 sanic[ext]
