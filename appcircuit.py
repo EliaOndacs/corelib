@@ -1,31 +1,20 @@
+import sys
+
+if sys.platform != "win32":
+    raise OSError(
+        f"operating system {sys.platform()} is not supported by appcircuit! (only windows is supported)"
+    )
+
 from contextlib import contextmanager
 from typing import Protocol
 import click, sys
 
 
 def create_input_handler():
-    if sys.platform == "win32":
-        import msvcrt
-
-        return msvcrt.getch
-    else:
-        import termios
-
-        def getch(self):
-            fd = sys.stdin.fileno()
-            old_settings = termios.tcgetattr(fd)
-            try:
-                tty.setraw(sys.stdin.fileno())
-                ch = sys.stdin.read(1)
-            finally:
-                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-            return ch
-
-        return getch
-
+    import msvcrt
+    return msvcrt.getch
 
 _cursor = True
-
 
 def toggle_cursor():
     global _cursor
@@ -35,7 +24,6 @@ def toggle_cursor():
     else:
         _cursor = True
         print("\033[?25h", end="", flush=True)
-
 
 @contextmanager
 def cursor():
@@ -85,4 +73,3 @@ class App(Protocol):
     def init(self): ...
     def update(self, key: bytes): ...
     def draw(self): ...
-
