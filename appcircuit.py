@@ -38,6 +38,15 @@ def cursor():
     _cursor = True
     toggle_cursor()
 
+@contextmanager
+def header():
+    print("\033[H", end="")
+    yield
+
+@contextmanager
+def footer():
+    print("\033[999;1H", end="")
+    yield
 
 def notify(text: str):
     print("\033[999;1H", end="")
