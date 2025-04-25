@@ -2,7 +2,7 @@ import sys
 
 if sys.platform != "win32":
     raise OSError(
-        f"operating system {sys.platform()} is not supported by appcircuit! (only windows is supported)"
+        f"operating system/kernel {sys.platform} is not supported by appcircuit! (only windows is supported)"
     )
 
 from contextlib import contextmanager
@@ -12,9 +12,12 @@ import click, sys
 
 def create_input_handler():
     import msvcrt
+
     return msvcrt.getch
 
+
 _cursor = True
+
 
 def toggle_cursor():
     global _cursor
@@ -24,6 +27,7 @@ def toggle_cursor():
     else:
         _cursor = True
         print("\033[?25h", end="", flush=True)
+
 
 @contextmanager
 def cursor():
@@ -53,6 +57,7 @@ def prompt(text: str) -> str:
 def runApp(app: "App"):
     global _cursor
     input_handler = create_input_handler()
+    sequence_handler = create_input_handler()
     print("\033[?1049h", end="", flush=True)
     _cursor = True
     toggle_cursor()
@@ -61,7 +66,11 @@ def runApp(app: "App"):
         click.clear()
         print(end="", flush=True)
         app.draw()
-        app.update(input_handler())
+        key = input_handler()
+        if key in (b"\x00", b"\xe0"):
+            app.update(key, sequence=sequence_handler())
+        else:
+            app.update(key)
     _cursor = False
     toggle_cursor()
     print("\033[?1049l", end="", flush=True)
@@ -71,5 +80,5 @@ class App(Protocol):
     alive: bool
 
     def init(self): ...
-    def update(self, key: bytes): ...
+    def update(self, key: bytes, *, sequence: bytes | None = None): ...
     def draw(self): ...
