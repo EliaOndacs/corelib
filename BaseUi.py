@@ -356,14 +356,14 @@ ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
 def smartborder(string, padding=1, style: _Style | None = None):
-    "a more complex functionalitie for creating and adding borders to text, this function allows you to make more complex borders"
+    "a more complex functionalities for creating and adding borders to text, this function allows you to make more complex borders"
     style = get_style(style)
     if style:
         horizontal = style.get("Smartborder.horizontal", ["-"] * 2)
         vertical = style.get("Smartborder.vertical", ["|"] * 2)
         corners = style.get("Smartborder.corners", ["+"] * 4)
     else:
-        horizontal = ["-" * 2]
+        horizontal = ["-"] * 2
         vertical = ["|"] * 2
         corners = ["+"] * 4
 
@@ -1878,3 +1878,26 @@ def note(text: str, message: str, ln: int):
 
 
 ###########################################################
+
+
+class Panel:
+    def __init__(
+        self,
+        content: str,
+        *,
+        title: str | None = None,
+        style: _Style | None = None,
+        padding: int = -1,
+    ) -> None:
+        self.content = content
+        self.title = title
+        self.style = style
+        self.padding = padding
+
+    def __str__(self) -> str:
+        result: str = smartborder(self.content, padding=self.padding, style=self.style)
+        if self.title:
+            t = result.splitlines()
+            t[0] = "".join(render_layers([t[0], f"   {self.title}   "], replace_space=True))
+            result = "\n".join(t)
+        return result

@@ -71,13 +71,11 @@ class Component:
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         return self.render(*args, **kwds)
 
-
 def leafComponent(function: Callable) -> Component:
     "create a component without an application"
     component = Component(function)
     component.app = None
     return component
-
 
 class GlobalStore:
     "(internal) a global state store used for the application"
@@ -160,13 +158,9 @@ class Application:
         return self._root.render()
 
 
-def useState() -> tuple[Callable, Callable]:
+def useState() -> tuple[dict, Callable]:
     "returns the helper functions for reading and writing the component state"
     component = useComponent()  # returns the active component
-
-    def read() -> dict[str, Any]:
-        nonlocal component
-        return component.state
 
     def write(state: dict[str, Any], *, ignore_compatibility: bool = False) -> None:
         nonlocal component
@@ -177,8 +171,7 @@ def useState() -> tuple[Callable, Callable]:
                 )
         component.state = state
 
-    return (read, write)
-
+    return (component.state, write)
 
 def useComponentName() -> str:
     "returns the component name"
@@ -210,9 +203,29 @@ def useStateDiff() -> dict[str, tuple[Any, Any]]:
     return diffs
 
 
+def useTemporary[T](initial: T) -> tuple[Callable[[], T], Callable[[T], None]]:
+    "creates a temporary state"
+    value: T = initial
+
+    def read() -> T:
+        nonlocal value
+        return value
+
+    def write(new: T):
+        nonlocal value
+        value = new
+
+    return (read, write)
+
+
 def useIsMounted():
     "returns True if the component has mounted otherwise False"
     return useComponent()._is_mounted
+
+
+def onMount():
+    "like `useIsMounted` but instead it would return True if the component is being mounted"
+    return not useIsMounted()
 
 
 def useEffect(callback: Callable[[], None], dependencies: list[str]) -> None:

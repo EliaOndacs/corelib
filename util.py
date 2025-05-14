@@ -1,5 +1,6 @@
+from contextlib import contextmanager
 from functools import partial
-from typing import Callable, Protocol, Generator
+from typing import Callable, Protocol, Generator, Iterable
 import sys, time
 
 
@@ -72,9 +73,41 @@ class TerminalDriver(Driver):
         else:
             raise RuntimeError(f"unsupported driver call: {call!r}")
 
-def sequencer[T](pattern: str, function: Callable[[str], T], *, wait: float|int = 0) -> Generator[T, None, None]:
+
+def sequencer[
+    T
+](pattern: str, function: Callable[[str], T], *, wait: float | int = 0) -> Generator[
+    T, None, None
+]:
     for char in pattern:
         yield function(char)
         if wait != 0:
             time.sleep(wait)
 
+
+@contextmanager
+def trycatch(on_error: Callable[[Exception], None]):
+    try:
+        yield
+    except Exception as err:
+        on_error(err)
+
+def merge_sequence[T](sequence1: Iterable[T], sequence2: Iterable[T]) -> list[T]:
+    result: list[T] = []
+    i, j = 0, 0
+    seq1 = list(sequence1)
+    seq2 = list(sequence2)
+    while i < len(seq1) and j < len(seq2):
+        if seq1[i] < seq2[j]:  # type: ignore
+            result.append(seq1[i])
+            i += 1
+        else:
+            result.append(seq2[j])
+            j += 1
+    while i < len(seq1):
+        result.append(seq1[i])
+        i += 1
+    while j < len(seq2):
+        result.append(seq2[j])
+        j += 1
+    return result
