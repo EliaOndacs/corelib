@@ -38,15 +38,18 @@ def cursor():
     _cursor = True
     toggle_cursor()
 
+
 @contextmanager
 def header():
     print("\033[H", end="")
     yield
 
+
 @contextmanager
 def footer():
     print("\033[999;1H", end="")
     yield
+
 
 def notify(text: str):
     print("\033[999;1H", end="")
@@ -75,6 +78,7 @@ def runApp(app: "App"):
         click.clear()
         print(end="", flush=True)
         app.draw()
+        print(end="", flush=True)
         key = input_handler()
         if key in (b"\x00", b"\xe0"):
             app.update(key, sequence=sequence_handler())

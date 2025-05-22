@@ -30,6 +30,7 @@ class deta[T]:
     def meta(self, *content):
         "add mtadata to the object before calling the `repr` function on each object passed through"
         self._meta.extend(map(repr, content))
+        return self
 
     def json(self) -> dict[str, Any]:
         "returns a python dictionary that can be turned into json or any other format"

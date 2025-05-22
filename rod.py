@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Optional, Union, get_type_hints
 import re
 
+
 class r:
     "r validator class and default provided checkers"
 
@@ -16,13 +17,17 @@ class r:
         structure: dict
         valitation_history: list[bool] = field(default_factory=list)
 
-        def validate(self, data):
-            return r.validate(self, data)
+        def validate(self, data: dict, *, strict: bool = True, error: bool = True):
+            return r.validate(self, data, strict=strict, error=error)
 
     @classmethod
     def _check_type(cls, item, check, key):
         if isinstance(check, type):
-            return isinstance(item, check)
+            if not isinstance(item, check):
+                raise TypeError(
+                    f"expected the key {key!r} to be type of {check.__name__}"
+                )
+            return True
         elif isinstance(check, r.robject):
             r.validate(check, item)
             return True
