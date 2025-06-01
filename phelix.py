@@ -71,11 +71,13 @@ class Component:
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         return self.render(*args, **kwds)
 
+
 def leafComponent(function: Callable) -> Component:
     "create a component without an application"
     component = Component(function)
     component.app = None
     return component
+
 
 class GlobalStore:
     "(internal) a global state store used for the application"
@@ -173,6 +175,7 @@ def useState() -> tuple[dict, Callable]:
 
     return (component.state, write)
 
+
 def useComponentName() -> str:
     "returns the component name"
     return useComponent().name
@@ -251,7 +254,13 @@ def useEffect(callback: Callable[[], None], dependencies: list[str]) -> None:
         callback()
 
 
+def useParent() -> Component:
+    "returns the parent component"
+    return useComponent(index=-2)
+
+
 def useGlobalStore() -> GlobalStore:
+    "return the current global state store"
     app = useApp()
     if app is None:
         raise RuntimeError(
