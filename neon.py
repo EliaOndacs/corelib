@@ -60,6 +60,7 @@ type SparklineStyle = list[str]
 type _AutoReprRenderResult = Generator[SupportsStr, SupportsStr | None, None]
 type ScaleStyle = tuple[str, str]
 type BreadcrumbStyle = str
+type BlockStyle = list[str]
 
 
 def forge(string: tuple[SupportsStr, SupportsStr]) -> str:
@@ -104,20 +105,22 @@ def flip(axis: Literal["x", "y"], string: SupportsStr) -> str:
         return flip("y", "".join(chars))
 
 
-def sort(string: SupportsStr):
+def sort(string: SupportsStr) -> str:
     "sort the characters in the string"
     chars = list(str(string))
     chars.sort()
     return "".join(chars)
 
 
-def cut(string: SupportsStr, position: tuple[int, int]):
+def cut(
+    string: SupportsStr, position: tuple[int, int]
+) -> "tuple[Segment, Segment, Segment]":
     "cut the string from the `position[0]` to `position[1]` and return the three section start, cutted string, end"
     string = str(string)
     start = string[: position[0]]
     cutted = string[position[0] : position[1]]
     end = string[position[1] :]
-    return start, cutted, end
+    return Segment(start), Segment(cutted), Segment(end)
 
 
 def constrain(content: SupportsStr, width: int, *, reverse: bool = False) -> str:
@@ -130,7 +133,7 @@ def constrain(content: SupportsStr, width: int, *, reverse: bool = False) -> str
         return str(content)[-width:]
 
 
-def crop(content: SupportsStr, size: tuple[int, int]):
+def crop(content: SupportsStr, size: tuple[int, int]) -> str:
     "crop the string to the desired size"
     content = str(content)
     result = ""
@@ -142,7 +145,7 @@ def crop(content: SupportsStr, size: tuple[int, int]):
     return result
 
 
-def expand(content: SupportsStr, addition: tuple[int, int]):
+def expand(content: SupportsStr, addition: tuple[int, int]) -> str:
     "expand the given content using filler spaces to match the desired measurement"
     content = str(content)
     width, height = addition
@@ -159,20 +162,50 @@ def replace(
 ) -> str:
     "replace a range[ `position[0]` : `position[1]` ] inside of a string with a new string"
     start, _, end = cut(string, position)
-    return start + str(replace_with) + end
+    return str(start) + str(replace_with) + str(end)
+
+
+def remove_effects(string: SupportsStr, *, show_where_removed: bool = False) -> str:
+    "remove all effects from the string"
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    stripped_text = ansi_escape.sub("(!)" if show_where_removed else "", str(string))
+    return stripped_text
+
+
+def splitchar(line: SupportsStr) -> list[str]:
+    "Split a line into a list of characters and controls"
+    ansi_escape = re.compile(r"(\x1B\[[0-?]*[ -/]*[@-~]|[^\x1B]+)")
+    line = str(line)
+    parts = ansi_escape.findall(line)
+    segments = [part for part in parts if part]
+    chars = []
+    for seg in segments:
+        if isEscapeCode(seg):
+            chars.append(seg)
+            continue
+        chars.extend(list(seg))
+    return chars
+
+
+def isEscapeCode(code: SupportsStr) -> bool:
+    "Check if a string is an escape code"
+    return str(code).startswith("\x1b[")
 
 
 class Character:
-    "store a single character"
+    "store a single character/escape code"
 
     char: str
 
-    def __init__(self, string: SupportsStr = "") -> None:
+    def __init__(self, string: SupportsStr = "", *, strip: bool = True) -> None:
         string = str(string)
-        if len(string) == 0:
-            self.char = ""
+        if strip == True:
+            if len(string) == 0:
+                self.char = ""
+            else:
+                self.char = string[0]
         else:
-            self.char = string[0]
+            self.char = string
 
     def __repr__(self) -> str:
         return "'" + self.char + "'"
@@ -477,10 +510,10 @@ def border(
         (fg.blue("─"), fg.blue("─")),
         (fg.blue("│"), fg.blue("│")),
         (
-            fg.blue("┌"),
-            fg.blue("┐"),
-            fg.blue("└"),
-            fg.blue("┘"),
+            fg.blue("╭"),
+            fg.blue("╮"),
+            fg.blue("╰"),
+            fg.blue("╯"),
         ),
     ),
 ) -> str:
@@ -494,11 +527,7 @@ def border(
     lines = string.splitlines()
 
     m = Measurement(string)
-    max_width = (
-        m.visible[0]
-        + Measurement(vertical[0]).columns
-        + Measurement(vertical[1]).columns
-    )
+    max_width = m.visible[0]
 
     border_top = corners[0] + (horizontal[0] * max_width) + corners[1]
     border_bottom = corners[2] + (horizontal[1] * max_width) + corners[3]
@@ -507,7 +536,7 @@ def border(
     for line in lines:
         m = Measurement(line)
         bordered_lines.append(
-            f"{vertical[0]}{line}{' '*(max_width-m.visible[0])}{vertical[1]}"
+            f"{vertical[0]}{line}{' '*((max_width)-m.visible[0])}{vertical[1]}"
         )
     bordered_lines.append(border_bottom)
 
@@ -578,8 +607,14 @@ class Projection:
     def content(self) -> list[list[str]]:
         return self._content
 
+    def __neon__(self):
+        for row in self.content:
+            for cell in row:
+                yield cell
+            yield "\n"
+
     def __str__(self) -> str:
-        return "\n".join(["".join(row) for row in self.content])
+        return str(useAutoRepr(self))
 
     def __repr__(self) -> str:
         return f"Projection(width={self.width}, height={self.height})"
@@ -623,23 +658,29 @@ class Canvas:
                 row[:] = row[: self.width]
 
     def setcol(self, char: str, row: int, col: int):
-        if (row < 0) or (row >= self.height) or (col < 0) or (row >= self.width):
-            raise IndexError("character position in buffer index exceed")
-        self.buff[row][col] = Character(char)
+        if (row < 0) or (row >= self.height) or (col < 0) or (col >= self.width):
+            raise IndexError(
+                f"Character position ({row}, {col}) exceeds buffer dimensions ({self.height}, {self.width})"
+            )
+        self.buff[row][col] = Character(char, strip=not isEscapeCode(char))
 
     def project(self, content: SupportsStr, *, x: int = 0, y: int = 0):
         "project a string onto the canvas at the specified position"
+        # TODO: this code is so problematic i can't even begin to explain why
+        # TODO: please fix this for god sake
         content = str(content)
-        for i, row in enumerate(content.split("\n")):
-            for j, char in enumerate(row):
+        for i, row in enumerate(content.splitlines()):
+            for j, char in enumerate(splitchar(row)):
                 if (
                     (i + y < 0)
                     or (i + y >= self.height)
                     or (j + x < 0)
                     or (j + x >= self.width)
                 ):
-                    raise IndexError("character position in buffer index exceed")
-                self.buff[i + y][j + x] = Character(char)
+                    raise IndexError(
+                        f"Character position ({i + y}, {j + x}) exceeds buffer dimensions ({self.height}, {self.width})"
+                    )
+                self.setcol(char, i + y, j + x)
 
     def render(self) -> Projection:
         "render the canvas to a projection"
@@ -763,13 +804,13 @@ class Panel:
                 self.border_style
                 if self.border_style
                 else (
-                    (fg.blue("─"), fg.blue("─")),
-                    (fg.blue("│"), fg.blue("│")),
+                    ("─", "─"),
+                    ("│", "│"),
                     (
-                        fg.blue("┌"),
-                        fg.blue("┐"),
-                        fg.blue("└"),
-                        fg.blue("┘"),
+                        "╭",
+                        "╮",
+                        "╰",
+                        "╯",
                     ),
                 )
             ),
@@ -777,12 +818,12 @@ class Panel:
         if self.title is not None:
             m = Measurement(content)
             c = Canvas(m.columns, m.rows)
-            c.project(content)
+            c.project(content)  # <- here
             title = self.title
-            if len(self.title) >= m.columns:
+            if len(self.title) > m.columns:
                 title = ""
-            c.project(title, x=2)
-            content = str(c.render())
+            c.project(" " + title + " ", x=3)
+            content = str(c.render())  # <- here
         if self.subtitle is not None:
             m = Measurement(content)
             c = Canvas(m.columns, m.rows)
@@ -790,7 +831,9 @@ class Panel:
             subtitle = self.subtitle
             if len(self.subtitle) >= m.columns:
                 subtitle = ""
-            c.project(subtitle, x=m.columns - 2 - len(subtitle), y=m.rows - 1)
+            c.project(
+                " " + subtitle + " ", x=m.columns - 2 - len(subtitle), y=m.rows - 1
+            )
             content = str(c.render())
         return content
 
@@ -1276,13 +1319,50 @@ class Syntax:
         lines = content.splitlines()
         space_width = 4
         for index, line in enumerate(lines):
-            if len(str(index)) >= space_width:
+            if len(str(index + 1)) >= space_width:
                 space_width += 2
-            yield Segment(" " * (space_width - len(str(index))))
-            yield Segment(index)
+            yield Segment(" " * (space_width - len(str(index + 1))))
+            yield Segment(index + 1)
             yield Segment("│")
             yield line
             yield Segment.newline()
+
+    def __str__(self) -> str:
+        return str(useAutoRepr(self))
+
+
+class VerticalContainer:
+    "renders multiple renderables in a vertical order"
+
+    def __init__(self, *renderables: SupportsStr) -> None:
+        self.renderables = renderables
+
+    def __neon__(self):
+        for renderable in self.renderables:
+            yield str(renderable)
+            yield "\n"
+
+    def __str__(self) -> str:
+        return str(useAutoRepr(self))
+
+
+class Map:
+    "renders a 2D binary map into renderable using the `BlockStyle` guide"
+
+    def __init__(
+        self,
+        shape: list[list[int]],
+        *,
+        block_style: BlockStyle = [bg.white("██"), "  "],
+    ) -> None:
+        self.shape = shape
+        self.block_style = block_style
+
+    def __neon__(self):
+        for row in self.shape:
+            for col in row:
+                yield self.block_style[col]
+            yield "\n"
 
     def __str__(self) -> str:
         return str(useAutoRepr(self))
