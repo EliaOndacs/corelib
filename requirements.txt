@@ -1,4 +1,5 @@
 rich
+Pillow
 ansi
 click
 bs4

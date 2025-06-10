@@ -6,7 +6,7 @@ application architecture and compatibility
 """
 
 from contextlib import contextmanager
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 _component_stack: list["Component"] = []
 "stores the depths of current running components at runtime"
@@ -35,6 +35,7 @@ def useComponent(*, index: int = -1) -> "Component":
 
 class Component:
     "a component object"
+
     _state: dict[str, Any] = {}
     previous_state: dict[str, Any] = {}
     "previous local state of the component"
@@ -115,7 +116,8 @@ class GlobalStore:
 
 class Application:
     "a phelix application layer"
-    store: GlobalStore | None = None
+
+    store: GlobalStore
     "the application global state store"
     name: str
     "name of the app"
@@ -123,6 +125,10 @@ class Application:
     "components of the app"
     _root: Component | None = None
     "root component of the app"
+    pages: dict[str, Component] = {}
+    "contains the other pages of the app"
+    active: Component | None = None
+    "contains the main component being rendered (defaults to `app._root`)"
 
     def __getattribute__(self, name: str, /):
         try:
@@ -147,17 +153,47 @@ class Application:
         self.components[component.name] = component
         return component
 
+    def route(self, url: str):
+        "create a new app route"
+
+        def decorator(function: Callable) -> Component:
+            component = Component(function)
+            component.app = self
+            self.pages[url] = component
+            self.active = component
+            return component
+
+        return decorator
+
+    def load_route(self, route: str):
+        "set the active page to application component at the specified route"
+
+        if not route.startswith("/"):
+            raise RuntimeError(f"{self.name}:load_route invalid route {route!r}")
+
+        if (route == "/") or (route == "/root"):
+            self.active = self._root
+        elif route in self.pages:
+            self.active = self.pages[route]
+        else:
+
+            self.active = self._root
+            return True
+
+        return False
+
     def root(self, function: Callable) -> Component:
         "create the root component of the application"
         component = Component(function)
         component.app = self
         self._root = component
+        self.active = self._root
         return component
 
     def render(self) -> Any:
         "render the application from its root component"
-        assert self._root != None, f"{self.name}:root component not defined!"
-        return self._root.render()
+        assert self.active != None, f"{self.name}:@active component not defined!"
+        return self.active.render()
 
 
 def useState() -> tuple[dict, Callable]:
@@ -257,6 +293,28 @@ def useEffect(callback: Callable[[], None], dependencies: list[str]) -> None:
 def useParent() -> Component:
     "returns the parent component"
     return useComponent(index=-2)
+
+
+def useStateVar[T](name: str, initial: T) -> tuple[T, Callable[[T], T]]:
+    "create a state for the component"
+    state, write = useState()
+
+    def writer(new: T) -> T:
+        nonlocal state
+        write({**state, name: new})
+        return new
+
+    return cast(T, state.get(name, initial)), writer
+
+
+def useRoute(route: str) -> bool:
+    "sets the current page/route of the application, returns True if an error occurred"
+    app = useApp()
+    if app is None:
+        raise RuntimeError(
+            "useGlobalStore() must be used within an application context"
+        )
+    return app.load_route(route)
 
 
 def useGlobalStore() -> GlobalStore:

@@ -21,9 +21,12 @@ from typing import (
     Callable,
     Generator,
     Iterable,
+    NamedTuple,
     Literal,
+    Optional,
     Protocol,
     runtime_checkable,
+    cast,
 )
 from ansi.colour.rgb import rgb256
 from ansi.colour import fx, bg, fg
@@ -32,6 +35,7 @@ from pygments.lexers import get_lexer_by_name
 from pygments.formatters.terminal256 import Terminal256Formatter
 from pygments.style import Style as CodeStyle
 from pygments import highlight as CodeHighlight
+from PIL import Image
 
 
 @runtime_checkable
@@ -1366,3 +1370,51 @@ class Map:
 
     def __str__(self) -> str:
         return str(useAutoRepr(self))
+
+
+@autorepr
+def pixelimage(
+    path: str,
+    *,
+    width: Optional[int] = None,
+    height: Optional[int] = None,
+    texture: Optional[SupportsStr] = None,
+):
+    "renders an image into terminal columns"
+    img = Image.open(path)
+    img = img.convert("RGB")
+    if width == None:
+        width = img.width
+    if height == None:
+        height = img.height
+    img = img.resize((width or 0, height or 0))
+    for y in range(height or 0):
+        for x in range(width or 0):
+            rgb = cast(tuple[int, int, int], img.getpixel((x, y)))
+            yield rgb256(*rgb, True) + (str(texture) if texture else " ")
+    yield "\x1b[0m"
+
+
+class rect(NamedTuple):
+    "stores a region from x,y with the width, height"
+    width: int
+    height: int
+    x: int
+    y: int
+
+    def __str__(self) -> str:
+        return str(useAutoRepr(self))
+
+    def __neon__(self):
+        yield f"x: {self.x} y: {self.y}\n"
+        for _ in range(self.height):
+            for _ in range(self.width):
+                yield "#"
+            yield "\n"
+
+
+@autorepr
+def percentageCounter(value: float | int, max: float | int):
+    "display a percentage based counter with an '%' mark next to it [Note: the out of hundred measure will be calculated automatically]"
+    yield ((value * 100) // max)
+    yield "%"

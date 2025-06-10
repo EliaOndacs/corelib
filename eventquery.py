@@ -24,6 +24,7 @@ from queue import Queue
 @dataclass
 class Event[T]:
     "an event type"
+
     etype: object
     value: T
 
@@ -48,6 +49,7 @@ def clearEvents() -> None:
 
     global _event_queue
     _event_queue = Queue()
+
 
 def emitEvent(etype: object, value: object | None = None) -> None:
     """
@@ -85,6 +87,8 @@ class EventQuery[T]:
 
         _wait = True
         while _wait:
+            if len(_event_queue.queue) == 0:
+                continue
             event = _event_queue.queue[-1]
             if event.etype == self.etype:
                 _wait = False

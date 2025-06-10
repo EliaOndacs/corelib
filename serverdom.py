@@ -3,6 +3,7 @@ from typing import Any, cast
 import urllib
 import urllib.parse
 
+
 @dataclass
 class Location:
     href: str
@@ -40,6 +41,10 @@ class DocumentNode:
     parentNode: "DocumentNode|None" = None
     visibilityState: bool = True
 
+    def clear(self):
+        self.childs = []
+        self.segments = []
+
     def getRootNode(self) -> "Document|DocumentNode":
         if self.parentNode == None:
             return self
@@ -57,7 +62,7 @@ class DocumentNode:
         for child in self.childs:
             if child.nodeName == name:
                 return child
-            if elm := child.getElementById(name):
+            if elm := child.getElementByTagName(name):
                 return elm
         return None
 
@@ -65,7 +70,7 @@ class DocumentNode:
         for child in self.childs:
             if child.classname == classname:
                 return child
-            if elm := child.getElementById(classname):
+            if elm := child.getElementByClassName(classname):
                 return elm
         return None
 
@@ -107,4 +112,3 @@ class Document(DocumentNode): ...
 
 
 document = Document("", "@root")
-
