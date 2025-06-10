@@ -6,7 +6,7 @@ application architecture and compatibility
 """
 
 from contextlib import contextmanager
-from typing import Any, Callable, cast
+from typing import Any, Callable, Literal, cast
 
 _component_stack: list["Component"] = []
 "stores the depths of current running components at runtime"
@@ -47,6 +47,21 @@ class Component:
     "the parent application"
     _is_mounted: bool = False
     "True if the component has rendered at least once other wise False"
+    _reactivity: tuple[Callable[["Component"], None], Callable[["Component"], None]] = (
+        lambda _: None,
+        lambda _: None,
+    )
+
+    @property
+    def is_mounted(self) -> bool:
+        "True if the component has rendered at least once other wise False"
+        return self._is_mounted
+
+    @is_mounted.setter
+    def is_mounted(self, s: bool):
+        if s == True:
+            self._reactivity[0](self)
+        self._is_mounted = s
 
     @property
     def state(self) -> dict[str, Any]:
@@ -58,6 +73,18 @@ class Component:
         self.previous_state = self.state.copy()
         self._state = new
 
+    @property
+    def is_dirty(self) -> bool:
+        "returns wether the component state has changed or not"
+        return not (self.previous_state == self._state)
+
+    def useReactivity(
+        self,
+        update: Callable[["Component"], None],
+        mount: Callable[["Component"], None],
+    ):
+        self._reactivity = (mount, update)
+
     def __init__(self, function: Callable) -> None:
         self.function = function
         self.name = function.__name__
@@ -66,7 +93,9 @@ class Component:
         "render the component"
         with useRuntime(self):
             result = self.function(*args, **kwargs)
-        self._is_mounted = True
+        self.is_mounted = True
+        if self.is_dirty:
+            self._reactivity[1](self)
         return result
 
     def __call__(self, *args: Any, **kwds: Any) -> Any:
@@ -259,7 +288,7 @@ def useTemporary[T](initial: T) -> tuple[Callable[[], T], Callable[[T], None]]:
 
 def useIsMounted():
     "returns True if the component has mounted otherwise False"
-    return useComponent()._is_mounted
+    return useComponent().is_mounted
 
 
 def onMount():
@@ -274,7 +303,9 @@ def useEffect(callback: Callable[[], None], dependencies: list[str]) -> None:
     **Note**: The callback will not run on the initial mount of the component.
     """
     component = useComponent()
-    if not component._is_mounted:
+    if not component.is_mounted:
+        return
+    if not component.is_dirty:
         return
 
     previous_state = component.previous_state
@@ -312,7 +343,7 @@ def useRoute(route: str) -> bool:
     app = useApp()
     if app is None:
         raise RuntimeError(
-            "useGlobalStore() must be used within an application context"
+            "useRoute() must be used within an application context"
         )
     return app.load_route(route)
 
@@ -328,38 +359,3 @@ def useGlobalStore() -> GlobalStore:
         raise RuntimeError("corrupted application instance with no `app.state`!")
     return app.state
 
-
-class TextElements:
-    "text/terminal elements"
-
-    @classmethod
-    @leafComponent
-    def text(cls, content: str) -> str:
-        "display a string of text"
-        return content
-
-    @classmethod
-    @leafComponent
-    def div(cls, *children, sep: str = "") -> str:
-        "join multiple components with a seperator"
-        return sep.join(children)
-
-    @classmethod
-    @leafComponent
-    def br(cls) -> str:
-        "a line break"
-        return "\n\r"
-
-    @classmethod
-    @leafComponent
-    def conditional(
-        cls, condition: bool, true_child: str, false_child: str = ""
-    ) -> str:
-        """Render true_child if condition else false_child"""
-        return true_child if condition else false_child
-
-    @classmethod
-    @leafComponent
-    def ul(cls, items: list[str], separator: str = ", ") -> str:
-        """Render a list of items joined by separator"""
-        return separator.join(items)
