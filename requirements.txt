@@ -1,5 +1,5 @@
 rich
-Pillow
+pillow
 ansi
 click
 bs4
@@ -9,3 +9,6 @@ pygments
 sanic
 uvicorn
 sanic[ext]
+jinja2
+more-itertools
+pyquery

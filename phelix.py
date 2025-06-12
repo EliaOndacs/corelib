@@ -88,6 +88,7 @@ class Component:
     def __init__(self, function: Callable) -> None:
         self.function = function
         self.name = function.__name__
+        self.__doc__ = f"{function.__name__.capitalize()} Component"
 
     def render(self, *args, **kwargs) -> Any:
         "render the component"
@@ -246,6 +247,11 @@ def useComponentName() -> str:
     return useComponent().name
 
 
+def useParentName() -> str:
+    "returns the parent component name"
+    return useParent().name
+
+
 def useApp() -> Application | None:
     "returns the current component active application if exists, otherwise returns `None`"
     return useComponent().app
@@ -313,7 +319,7 @@ def useEffect(callback: Callable[[], None], dependencies: list[str]) -> None:
 
     changed = False
     for key in dependencies:
-        if previous_state.get(key) != current_state.get(key):
+        if previous_state.get(key, None) != current_state.get(key, None):
             changed = True
             break
 
@@ -342,9 +348,7 @@ def useRoute(route: str) -> bool:
     "sets the current page/route of the application, returns True if an error occurred"
     app = useApp()
     if app is None:
-        raise RuntimeError(
-            "useRoute() must be used within an application context"
-        )
+        raise RuntimeError("useRoute() must be used within an application context")
     return app.load_route(route)
 
 
@@ -358,4 +362,3 @@ def useGlobalStore() -> GlobalStore:
     if app.state is None:
         raise RuntimeError("corrupted application instance with no `app.state`!")
     return app.state
-
