@@ -1256,7 +1256,7 @@ def header(name: SupportsStr):
     driver = TerminalDriver()
 
     yield rule(fg.brightblue("─"), driver.width)
-    yield rule(" ", driver.width, title=str(name).capitalize())
+    yield rule(" ", driver.width, title=str(name).capitalize(), newline=False)
     yield rule(fg.brightblue("─"), driver.width)
 
 

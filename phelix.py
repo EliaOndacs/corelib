@@ -6,7 +6,7 @@ application architecture and compatibility
 """
 
 from contextlib import contextmanager
-from typing import Any, Callable, Literal, cast
+from typing import Any, Callable, cast
 
 _component_stack: list["Component"] = []
 "stores the depths of current running components at runtime"
@@ -33,13 +33,13 @@ def useComponent(*, index: int = -1) -> "Component":
     return _component_stack[index]
 
 
-class Component:
+class Component[RType]:
     "a component object"
 
     _state: dict[str, Any] = {}
     previous_state: dict[str, Any] = {}
     "previous local state of the component"
-    function: Callable
+    function: Callable[..., RType]
     "render logic function passed by the user"
     name: str
     "name of the component"
@@ -85,12 +85,12 @@ class Component:
     ):
         self._reactivity = (mount, update)
 
-    def __init__(self, function: Callable) -> None:
+    def __init__(self, function: Callable[..., RType]) -> None:
         self.function = function
         self.name = function.__name__
         self.__doc__ = f"{function.__name__.capitalize()} Component"
 
-    def render(self, *args, **kwargs) -> Any:
+    def render(self, *args, **kwargs) -> RType:
         "render the component"
         with useRuntime(self):
             result = self.function(*args, **kwargs)
@@ -99,7 +99,7 @@ class Component:
             self._reactivity[1](self)
         return result
 
-    def __call__(self, *args: Any, **kwds: Any) -> Any:
+    def __call__(self, *args: Any, **kwds: Any) -> RType:
         return self.render(*args, **kwds)
 
 
