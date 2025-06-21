@@ -103,7 +103,7 @@ class Component[RType]:
         return self.render(*args, **kwds)
 
 
-def leafComponent(function: Callable) -> Component:
+def leafComponent[RType](function: Callable[..., RType]) -> Component[RType]:
     "create a component without an application"
     component = Component(function)
     component.app = None
@@ -176,7 +176,7 @@ class Application:
         self.name = name
         self.state = GlobalStore()
 
-    def component(self, function: Callable) -> Component:
+    def component[RType](self, function: Callable[..., RType]) -> Component[RType]:
         "create a new component"
         component = Component(function)
         component.app = self
@@ -186,7 +186,7 @@ class Application:
     def route(self, url: str):
         "create a new app route"
 
-        def decorator(function: Callable) -> Component:
+        def decorator[RType](function: Callable[..., RType]) -> Component[RType]:
             component = Component(function)
             component.app = self
             self.pages[url] = component
@@ -212,7 +212,7 @@ class Application:
 
         return False
 
-    def root(self, function: Callable) -> Component:
+    def root[RType](self, function: Callable[..., RType]) -> Component[RType]:
         "create the root component of the application"
         component = Component(function)
         component.app = self
