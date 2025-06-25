@@ -836,7 +836,7 @@ class Panel:
             if len(self.subtitle) >= m.columns:
                 subtitle = ""
             c.project(
-                " " + subtitle + " ", x=m.columns - 2 - len(subtitle), y=m.rows - 1
+                " " + subtitle + " ", x=m.columns - 4 - len(subtitle), y=m.rows - 1
             )
             content = str(c.render())
         return content
@@ -1397,6 +1397,7 @@ def pixelimage(
 
 class rect(NamedTuple):
     "stores a region from x,y with the width, height"
+
     width: int
     height: int
     x: int
