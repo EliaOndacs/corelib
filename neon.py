@@ -12,7 +12,9 @@ from dataclasses import dataclass
 from functools import wraps
 from os import system
 import os
+import string as stdstr
 import re
+import textwrap
 from shutil import get_terminal_size
 import sys
 import threading
@@ -167,6 +169,29 @@ def replace(
     "replace a range[ `position[0]` : `position[1]` ] inside of a string with a new string"
     start, _, end = cut(string, position)
     return str(start) + str(replace_with) + str(end)
+
+
+def trim(string: SupportsStr) -> str:
+    "remove all whitespaces from the beginning and the end of the string"
+    string = str(string)
+    return string.strip(stdstr.whitespace)
+
+
+def breaklines(string: SupportsStr, width: int, *, end: str = "\n") -> str:
+    "its a wrap function that makes a text into lines fitting the required width"
+    return end.join(textwrap.wrap(str(string), width))
+
+
+def truncate(
+    string: SupportsStr, max_width: int, *, ellipsis: SupportsStr = "..."
+) -> str:
+    "shorten the string with an custom ending or an ellipsis if it reaches the max width"
+    string, ellipsis = str(string), str(ellipsis)
+    return (
+        string
+        if max_width <= len(string)
+        else (string[: max_width - len(ellipsis)] + ellipsis)
+    )
 
 
 def remove_effects(string: SupportsStr, *, show_where_removed: bool = False) -> str:
