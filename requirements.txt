@@ -11,4 +11,3 @@ uvicorn
 sanic[ext]
 jinja2
 more-itertools
-pyquery

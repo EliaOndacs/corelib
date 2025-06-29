@@ -1,19 +1,6 @@
 """
-#define _event_queue Queue[Event]
-
-emitEvent(type: object, value: object -> None: ...
-queryEvent(type: object) -> EventQuery: ...
-clearEvents() -> None: ...
-
-Event[T]:
-    type: object
-    value: T
-
-EventQuery[T]:
-    wait() -> Event[T]: ...
-    onEvent(callback: Callable[[Event[T]], None]): ...
-    count: int
-
+an event base library that adds type smart, events and event query selectors
+this modules is also async friendly
 """
 
 from dataclasses import dataclass
@@ -25,7 +12,7 @@ from queue import Queue
 class Event[T]:
     "an event type"
 
-    etype: object
+    genetic: object
     value: T
 
 
@@ -51,14 +38,14 @@ def clearEvents() -> None:
     _event_queue = Queue()
 
 
-def emitEvent(etype: object, value: object | None = None) -> None:
+def emitEvent(genetic: object, value: object | None = None) -> None:
     """
     emit an event with the following event type and value.
 
     """
 
     global _event_queue, _event_queue_subscribers
-    event = Event(etype, value)
+    event = Event(genetic, value)
     _event_queue.put(event)
     for callback in _event_queue_subscribers.queue:
         callback(event)
@@ -68,15 +55,23 @@ def emitEvent(etype: object, value: object | None = None) -> None:
 class EventQuery[T]:
     "event query type"
 
-    etype: object
+    genetic: object
 
     @property
     def count(self) -> int:
         "the amount of event with this type"
 
-        filterLambda = lambda e: e.etype == self.etype
+        filterLambda = lambda e: e.genetic == self.genetic
         filterResult = list(filter(filterLambda, _event_queue.queue))
         return len(filterResult)
+
+    def clearEvents(self):
+        "clears all the event with this event type"
+        global _event_queue
+        
+        filterLambda = lambda e: e.genetic != self.genetic
+        filterResult = list(filter(filterLambda, _event_queue.queue))
+        _event_queue.queue = filterResult
 
     def wait(self) -> Event[T]:
         """
@@ -90,7 +85,7 @@ class EventQuery[T]:
             if len(_event_queue.queue) == 0:
                 continue
             event = _event_queue.queue[-1]
-            if event.etype == self.etype:
+            if event.genetic == self.genetic:
                 _wait = False
         return event  # type: ignore
 
@@ -99,10 +94,10 @@ class EventQuery[T]:
 
         @_event_queue_subscribers.put
         def _(event: Event[T]):
-            if event.etype == self.etype:
+            if event.genetic == self.genetic:
                 callback(event)
 
 
-def queryEvent(etype: object) -> EventQuery[Any]:
+def queryEvent(genetic: object) -> EventQuery[Any]:
     "query a specific type of event"
-    return EventQuery(etype)
+    return EventQuery(genetic)
