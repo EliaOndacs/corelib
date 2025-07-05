@@ -10,6 +10,7 @@ so shout out to him and his library.
 
 from dataclasses import dataclass
 from functools import wraps
+from io import StringIO
 from os import system
 import os
 import string as stdstr
@@ -27,6 +28,7 @@ from typing import (
     Literal,
     Optional,
     Protocol,
+    TextIO,
     runtime_checkable,
     cast,
 )
@@ -360,7 +362,8 @@ class Multiline:
 
     def append(self, line: Line | str):
         if isinstance(line, str):
-            self.lines.append(Line(line, newline=self.lines[-1].newline))
+            newline = self.lines[-1].newline if len(self.lines) > 0 else "\n"
+            self.lines.append(Line(line, newline=newline))
         elif isinstance(line, Line):
             self.lines.append(line)
 
@@ -527,10 +530,14 @@ class Factor[T]:
 class Style:
     "stores all the different style factors for a renderable to use"
 
-    foreground: Color | None = None
-    background: Color | None = None
-    padding: PaddingRecipe | None = None
-    margin: Factor | None = None
+    foreground: Optional[Color] = None
+    background: Optional[Color] = None
+    padding: Optional[PaddingRecipe] = None
+    margin: Optional[Factor] = None
+    bold: Optional[bool] = None
+    italic: Optional[bool] = None
+    underline: Optional[bool] = None
+    blink: Optional[bool] = None
 
 
 def border(
@@ -609,6 +616,20 @@ def colortext(content: SupportsStr, style: Style, *, reset: bool = True) -> str:
         codes.append(rgb256(*style.foreground.rgb))
     if isinstance(style.background, Color):
         codes.append(rgb256(*style.background.rgb, bg=True))
+
+    return forge((str(Control(codes)), str(content))) + ("\x1b[0m" if reset else "")
+
+
+def styletext(content: SupportsStr, style: Style, *, reset: bool = True) -> str:
+    "add style and effects to the string"
+    codes = []
+    if isinstance(style.bold, bool):
+        codes.append(fx.bold("", reset=False))
+    if isinstance(style.italic, bool):
+        codes.append(fx.italic("", reset=False))
+    if isinstance(style.blink, bool):
+        codes.append(fx.blink("", reset=False))
+
     return forge((str(Control(codes)), str(content))) + ("\x1b[0m" if reset else "")
 
 
@@ -649,7 +670,7 @@ class Projection:
         return f"Projection(width={self.width}, height={self.height})"
 
 
-def percentage(value: int | float, max: int) -> int | float:
+def percentage(value: int | float, max: int | float) -> int | float:
     "calculate percentage of value in max"
     return (value / max) * 100
 
@@ -722,6 +743,10 @@ class Canvas:
 
 class TerminalDriver:
 
+    _stdout = sys.stdout
+    _stdin = sys.stdin
+    _stderr = sys.stderr
+
     @property
     def width(self) -> int:
         "the width of the terminal"
@@ -735,7 +760,7 @@ class TerminalDriver:
     @property
     def fhandle(self) -> tuple[int, int, int]:
         "returns the file handle to stdout, stdin, stderr"
-        return sys.stdout.fileno(), sys.stdin.fileno(), sys.stderr.fileno()
+        return self._stdout.fileno(), self._stdin.fileno(), self._stderr.fileno()
 
     def clear(self):
         "clear the terminal screen"
@@ -769,7 +794,7 @@ class TerminalDriver:
 
     def restore(self):
         "restore the cursor position"
-        self.stdout("\033[u")
+        self.code("u")
 
     def clear_line(self):
         "clear the current line"
@@ -785,18 +810,22 @@ class TerminalDriver:
 
     def mode(self, code: int):
         "set the terminal mode"
-        self.stdout(f"\033[{code}m")
+        self.code(code, suffix="m")
+
+    def code(self, value: SupportsStr, *params, prefix: str = "", suffix: str = ""):
+        "generate and output an escape code"
+        self.stdout(f"\033[{prefix}{value}{';'.join(params)}{suffix}")
 
     def stdout(self, data: SupportsStr):
-        sys.stdout.write(str(data))
+        self._stdout.write(str(data))
         sys.stdout.flush()
 
     def stderr(self, data: SupportsStr):
-        sys.stderr.write(str(data))
-        sys.stderr.flush()
+        self._stderr.write(str(data))
+        self._stderr.flush()
 
     def stdin(self) -> str:
-        return sys.stdin.read()
+        return self._stdin.read()
 
 
 class Panel:
@@ -1442,5 +1471,14 @@ class rect(NamedTuple):
 @autorepr
 def percentageCounter(value: float | int, max: float | int):
     "display a percentage based counter with an '%' mark next to it [Note: the out of hundred measure will be calculated automatically]"
-    yield ((value * 100) // max)
+    yield percentage(value, max)
     yield "%"
+
+
+def unindent(string: SupportsStr) -> Multiline:
+    "unindent every line on the string"
+    string = str(string)
+    result = Multiline()
+    for line in string.splitlines():
+        result.append(trim(line))
+    return result
