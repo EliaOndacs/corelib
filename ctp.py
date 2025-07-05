@@ -7,7 +7,7 @@ from threading import Lock
 _global_document: StringIO = StringIO()
 "the global wireless document object"
 
-_global_render_lock: bool = False
+_global_render_lock: bool = True
 "wether the renderer is in write mode or render mode"
 
 _global_render_processors: list[Callable[[StringIO], StringIO]] = []
@@ -26,6 +26,7 @@ def console():
     with _document_lock:
         doc = StringIO(_global_document.read())
     yield doc
+    doc.seek(0)
     with _document_lock:
         if _global_render_lock == True:
             for proc in _global_render_processors:
@@ -45,7 +46,7 @@ def set_processor(processor: Callable[[StringIO], StringIO]) -> None:
 def render(file: Optional[str] = None) -> str:
     "render the buffer (optionally into a file as well)"
     with _document_lock:
-        content = "" if _global_render_lock else _global_document.read()
+        content = "" if (_global_render_lock == True) else _global_document.read()
 
     if file:
         with open(file, "w") as _f:
@@ -56,6 +57,7 @@ def render(file: Optional[str] = None) -> str:
 def close() -> None:
     "close the global render lock and lock any further changes, preparing for render"
     global _global_render_lock
+    
     with _document_lock:
         _global_render_lock = False
 
