@@ -8,6 +8,7 @@ so shout out to him and his library.
 
 """
 
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import wraps
 from io import StringIO
@@ -790,7 +791,7 @@ class TerminalDriver:
 
     def store(self):
         "store the cursor position"
-        self.stdout("\033[s")
+        self.code("s")
 
     def restore(self):
         "restore the cursor position"
@@ -1482,3 +1483,156 @@ def unindent(string: SupportsStr) -> Multiline:
     for line in string.splitlines():
         result.append(trim(line))
     return result
+
+
+from pathlib import Path
+from datetime import datetime
+
+
+class LoggerSystem:
+    "root logger system"
+
+    module: str
+    file: Optional[Path]
+    date_format: str
+
+    def __init__(
+        self,
+        module: str,
+        file: Optional[Path] = None,
+        date_format: Optional[str] = None,
+    ) -> None:
+        self.module = module
+        self.file = file
+        self.date_format = date_format or "[%Y/%m/%d %H:%M:%S]"
+        self.driver = TerminalDriver()
+
+    def __repr__(self):
+        return f"<LoggingSystem for {self.module}>"
+
+    @property
+    def display(self):
+        return self.module
+
+    def department(self, name: str) -> "LoggingDepartment":
+        return LoggingDepartment(name, self)
+
+    def write(
+        self,
+        department: "LoggingDepartment",
+        typename: SupportsStr,
+        message: SupportsStr,
+    ):
+        "write a new log"
+        name = str(typename)
+        date = datetime.now().strftime(self.date_format)
+        message = str(message)
+        if self.file:
+            if self.file.exists() and self.file.is_file():
+                content = self.file.read_text()
+            else:
+                content = ""
+            content += f"{date} reporter:{department.display} {name}: {message}\n"
+            self.file.write_text(content)
+
+        # [date] reporter:[department] [type] [message]
+
+        self.driver.stdout(
+            f"{fg.cyan(date)} {fg.red("reporter:")}{fg.cyan(f"@{department.display}")}\n{self.color_type(name)}: {fg.grey(message)}\n\n"
+        )
+
+    def exception(self, department: "LoggingDepartment", err: Exception):
+        "write a new exception log"
+        date = datetime.now().strftime(self.date_format)
+        if self.file:
+            if self.file.exists() and self.file.is_file():
+                content = self.file.read_text()
+            else:
+                content = ""
+            content += f"{date} reporter:{department.display} {type(err).__name__}: {str(err)}\n"
+            self.file.write_text(content)
+
+        self.driver.stdout(
+            f"{fg.cyan(date)} {fg.red("reporter:")}{fg.cyan(f"@{department.display}")}\n{fg.magenta(type(err).__name__)}: {fg.red(str(err))}\n\n"
+        )
+
+    def color_type(self, name: str):
+        match name.lower():
+            case "warning":
+                return fg.yellow(name.upper())
+            case "error":
+                return fg.red(name.upper())
+            case "info":
+                return fg.blue(name.upper())
+            case "debug":
+                return fg.green(name.upper())
+            case "fatal":
+                return bg.red(name.upper())
+            case _:
+                return fg.red(name)
+
+
+class LoggingDepartment:
+    "sub-module and interface for the logging system"
+
+    name: str
+    logger: "LoggerSystem|LoggingDepartment"
+
+    def __init__(self, name: str, logger: "LoggerSystem|LoggingDepartment") -> None:
+        self.name = name
+        self.logger = logger
+
+    def __repr__(self) -> str:
+        return f"<LoggingDepartment for {self.logger.display}:{self.name}>"
+
+    def department(self, name: str) -> "LoggingDepartment":
+        "create a new sub-department"
+        return LoggingDepartment(name, self)
+
+    def write(
+        self,
+        department: "LoggingDepartment",
+        typename: SupportsStr,
+        message: SupportsStr,
+    ):
+        "write a new log"
+        self.logger.write(department, typename, message)
+
+    def exception(self, department: "LoggingDepartment", err: Exception):
+        "write a new exception log"
+        self.logger.exception(department, err)
+
+    @property
+    def display(self):
+        "the display address of this department"
+        return f"{self.logger.display}:{self.name}"
+
+    def error(self, message: SupportsStr):
+        "a error logging message"
+        self.logger.write(self, "error", message)
+
+    def warning(self, message: SupportsStr):
+        "a warning logging message"
+        self.logger.write(self, "warning", message)
+
+    def info(self, message: SupportsStr):
+        "a info logging message"
+        self.logger.write(self, "info", message)
+
+    def debug(self, message: SupportsStr):
+        "a debug logging message"
+        self.logger.write(self, "debug", message)
+
+    def fatal(self, message: SupportsStr):
+        "a fatal logging message"
+        self.logger.write(self, "fatal", message)
+
+    @contextmanager
+    def wrap(self, raise_error: bool = False):
+        "a wrap block that automatically logs all errors inside"
+        try:
+            yield
+        except Exception as err:
+            self.logger.exception(self, err)
+            if raise_error:
+                raise
