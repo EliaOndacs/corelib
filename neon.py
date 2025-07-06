@@ -9,18 +9,21 @@ so shout out to him and his library.
 """
 
 from contextlib import contextmanager
+from shutil import get_terminal_size
 from dataclasses import dataclass
+from datetime import datetime
 from functools import wraps
+from pathlib import Path
+import string as stdstr
 from io import StringIO
 from os import system
-import os
-import string as stdstr
 import re
+import os
 import textwrap
-from shutil import get_terminal_size
 import sys
 import threading
 import time
+from types import TracebackType
 from typing import (
     Callable,
     Generator,
@@ -28,11 +31,13 @@ from typing import (
     NamedTuple,
     Literal,
     Optional,
+    ParamSpec,
     Protocol,
     TextIO,
     runtime_checkable,
     cast,
 )
+from pprint import pformat
 from ansi.colour.rgb import rgb256
 from ansi.colour import fx, bg, fg
 from pygments.lexer import Lexer
@@ -1102,10 +1107,10 @@ class Table:
         self, *headers: SupportsStr, table_style: TableStyle = ("│", "─", "┼")
     ) -> None:
         self.headers = tuple(map(str, headers))
-        self.data: list[list[str]] = []
+        self.data: list[list[SupportsStr]] = []
         self.style = table_style
 
-    def add_row(self, *columns: str) -> None:
+    def add_row(self, *columns: SupportsStr) -> None:
         self.data.append(list(columns))
 
     def __str__(self) -> str:
@@ -1205,11 +1210,14 @@ def useAutoRepr(obj: _SupportAutoRepr) -> SupportsStr:
     return joingen(obj.__neon__)()
 
 
-def autorepr(func: Callable[..., Generator[SupportsStr, SupportsStr | None, None]]):
+P = ParamSpec("P")
+
+
+def autorepr(func: Callable[P, Generator[SupportsStr, SupportsStr | None, None]]):
     """Autorepr decorator for functions that return generators."""
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: P.args, **kwargs: P.kwargs):
         return joingen(func)(*args, **kwargs)
 
     return wrapper
@@ -1358,12 +1366,29 @@ def link(text: SupportsStr, url: str):
 class Syntax:
     "a component to display code with syntax highlighting and line number"
 
+    @classmethod
+    def highlight(
+        cls,
+        text: SupportsStr,
+        lexer: Lexer | str,
+        *,
+        theme: str | CodeStyle = "monokai",
+    ):
+        "highlight an statement/expression only"
+        if isinstance(lexer, str):
+            lexer = get_lexer_by_name(lexer)
+        else:
+            lexer = lexer
+        return CodeHighlight(str(text), lexer, Terminal256Formatter(style=theme))
+
     def __init__(
         self,
         code: SupportsStr,
         lexer: Lexer | str,
         *,
         theme: str | CodeStyle = "monokai",
+        line_number_offset: int = 0,
+        highlighted_lines: list[int] = [],
     ):
         self.code = code
         if isinstance(lexer, str):
@@ -1371,13 +1396,22 @@ class Syntax:
         else:
             self.lexer = lexer
         self.formatter = Terminal256Formatter(style=theme)
+        self.line_number_offset = line_number_offset
+        self.highlighted_lines = highlighted_lines
 
     def __neon__(self):
         content = str(self.code)
         content = CodeHighlight(content, self.lexer, self.formatter)
         lines = content.splitlines()
         space_width = 4
-        for index, line in enumerate(lines):
+        index = self.line_number_offset + 1
+        for line in lines:
+            if len(self.highlighted_lines) > 0:
+                if index in self.highlighted_lines:
+                    # ▕ → ➞ 𝗛 H
+                    yield Segment(fx.bold(fg.cyan(" 𝗛")))
+                else:
+                    yield Segment("  ")
             if len(str(index + 1)) >= space_width:
                 space_width += 2
             yield Segment(" " * (space_width - len(str(index + 1))))
@@ -1385,6 +1419,7 @@ class Syntax:
             yield Segment("│")
             yield line
             yield Segment.newline()
+            index += 1
 
     def __str__(self) -> str:
         return str(useAutoRepr(self))
@@ -1485,10 +1520,6 @@ def unindent(string: SupportsStr) -> Multiline:
     return result
 
 
-from pathlib import Path
-from datetime import datetime
-
-
 class LoggerSystem:
     "root logger system"
 
@@ -1535,8 +1566,6 @@ class LoggerSystem:
             content += f"{date} reporter:{department.display} {name}: {message}\n"
             self.file.write_text(content)
 
-        # [date] reporter:[department] [type] [message]
-
         self.driver.stdout(
             f"{fg.cyan(date)} {fg.red("reporter:")}{fg.cyan(f"@{department.display}")}\n{self.color_type(name)}: {fg.grey(message)}\n\n"
         )
@@ -1552,9 +1581,46 @@ class LoggerSystem:
             content += f"{date} reporter:{department.display} {type(err).__name__}: {str(err)}\n"
             self.file.write_text(content)
 
+        *_, _tb = sys.exc_info()
+        tb = _tb.tb_next if _tb else None
+
         self.driver.stdout(
-            f"{fg.cyan(date)} {fg.red("reporter:")}{fg.cyan(f"@{department.display}")}\n{fg.magenta(type(err).__name__)}: {fg.red(str(err))}\n\n"
+            f"{fg.cyan(date)} {fg.red("reporter:")}{fg.cyan(f"@{department.display}")}\n{fg.magenta(type(err).__name__)}: {fg.red(str(err))}\n"
         )
+
+        def show_trace(trace: TracebackType | None):
+            if trace:
+                lines = Path(trace.tb_frame.f_code.co_filename).read_text().splitlines()
+                self.driver.stdout(
+                    border(
+                        Group(
+                            border(
+                                Syntax.highlight(
+                                    pformat(trace.tb_frame.f_locals), "python"
+                                )
+                            ),
+                            "\n",
+                            padding(
+                                Syntax(
+                                    "\n".join(
+                                        lines[trace.tb_lineno - 2 : trace.tb_lineno + 2]
+                                    ),
+                                    "python",
+                                    line_number_offset=trace.tb_lineno - 3,
+                                    highlighted_lines=[trace.tb_lineno - 1],
+                                ),
+                                (0, 0, 0, 5),
+                            ),
+                        )
+                    )
+                    + "\n"
+                )
+                if trace.tb_next:
+                    show_trace(trace.tb_next)
+
+        show_trace(tb)
+
+        self.driver.stdout("\n")
 
     def color_type(self, name: str):
         match name.lower():
