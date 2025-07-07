@@ -833,75 +833,6 @@ class TerminalDriver:
     def stdin(self) -> str:
         return self._stdin.read()
 
-
-class Panel:
-    "draws a border around its contents"
-
-    def __init__(
-        self,
-        content: SupportsStr,
-        *,
-        title: str | None = None,
-        subtitle: str | None = None,
-        width: int | None = None,
-        padding: PaddingRecipe | None = None,
-        border_style: TextBorder | None = None,
-        style: Style | None = None,
-    ) -> None:
-        self.content = content
-        self.style = style
-        self.width = width
-        self.title = title
-        self.subtitle = subtitle
-        self.padding = padding
-        self.border_style = border_style
-
-    def __str__(self) -> str:
-        content = self.content
-        if self.width is not None:
-            content = constrain(content, self.width)
-        if self.padding is not None:
-            content = padding(content, self.padding, style=self.style)
-        content = border(
-            content,
-            (
-                self.border_style
-                if self.border_style
-                else (
-                    ("─", "─"),
-                    ("│", "│"),
-                    (
-                        "╭",
-                        "╮",
-                        "╰",
-                        "╯",
-                    ),
-                )
-            ),
-        )
-        if self.title is not None:
-            m = Measurement(content)
-            c = Canvas(m.columns, m.rows)
-            c.project(content)  # <- here
-            title = self.title
-            if len(self.title) > m.columns:
-                title = ""
-            c.project(" " + title + " ", x=3)
-            content = str(c.render())  # <- here
-        if self.subtitle is not None:
-            m = Measurement(content)
-            c = Canvas(m.columns, m.rows)
-            c.project(content)
-            subtitle = self.subtitle
-            if len(self.subtitle) >= m.columns:
-                subtitle = ""
-            c.project(
-                " " + subtitle + " ", x=m.columns - 4 - len(subtitle), y=m.rows - 1
-            )
-            content = str(c.render())
-        return content
-
-
 class ProgressBar:
     "colorful progress bar"
 
@@ -1220,7 +1151,7 @@ def autorepr(func: Callable[P, Generator[SupportsStr, SupportsStr | None, None]]
     def wrapper(*args: P.args, **kwargs: P.kwargs):
         return joingen(func)(*args, **kwargs)
 
-    return wrapper
+    return cast(Callable[P, str], wrapper)
 
 
 class Screen:
@@ -1702,3 +1633,10 @@ class LoggingDepartment:
             self.logger.exception(self, err)
             if raise_error:
                 raise
+
+
+def print(
+    *values: SupportsStr, sep: Optional[str] = " ", end: Optional[str] = "\n"
+) -> None:
+    driver = TerminalDriver()
+    driver.stdout(((sep or "").join(map(str, values))) + (end or ""))
