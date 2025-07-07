@@ -77,6 +77,40 @@ type BreadcrumbStyle = str
 type BlockStyle = list[str]
 
 
+BORDER_STYLE_ROUND = (
+    (fg.blue("─"), fg.blue("─")),
+    (fg.blue("│"), fg.blue("│")),
+    (
+        fg.blue("╭"),
+        fg.blue("╮"),
+        fg.blue("╰"),
+        fg.blue("╯"),
+    ),
+)
+
+BORDER_STYLE_SQUARE = (
+    (fg.blue("─"), fg.blue("─")),
+    (fg.blue("│"), fg.blue("│")),
+    (
+        fg.blue("┌"),
+        fg.blue("┐"),
+        fg.blue("└"),
+        fg.blue("┘"),
+    ),
+)
+
+BORDER_STYLE_ASCII = (
+    (fg.blue("-"), fg.blue("-")),
+    (fg.blue("|"), fg.blue("|")),
+    (
+        fg.blue("+"),
+        fg.blue("+"),
+        fg.blue("+"),
+        fg.blue("+"),
+    ),
+)
+
+
 def forge(string: tuple[SupportsStr, SupportsStr]) -> str:
     "forge two strings together"
     string = (str(string[0]), str(string[1]))
@@ -459,7 +493,10 @@ class Measurement:
         ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
         stripped_text = ansi_escape.sub("", self.string)
         l = stripped_text.splitlines()
-        max_columns = max(len(line) for line in l)
+        if len(l) == 0:
+            max_columns = 0
+        else:
+            max_columns = max(len(line) for line in l)
         return max_columns, len(l)
 
 
@@ -548,16 +585,7 @@ class Style:
 
 def border(
     string: SupportsStr,
-    border: TextBorder = (
-        (fg.blue("─"), fg.blue("─")),
-        (fg.blue("│"), fg.blue("│")),
-        (
-            fg.blue("╭"),
-            fg.blue("╮"),
-            fg.blue("╰"),
-            fg.blue("╯"),
-        ),
-    ),
+    border: TextBorder = BORDER_STYLE_ROUND,
 ) -> str:
     """add borders around text (this is a lowlevel function; use `Panel` instead!)"""
 
@@ -832,6 +860,7 @@ class TerminalDriver:
 
     def stdin(self) -> str:
         return self._stdin.read()
+
 
 class ProgressBar:
     "colorful progress bar"
@@ -1640,3 +1669,10 @@ def print(
 ) -> None:
     driver = TerminalDriver()
     driver.stdout(((sep or "").join(map(str, values))) + (end or ""))
+
+
+def view(content: SupportsStr) -> str:
+    "remove all effects and render the content in a pure green string form inside a border"
+    content = border(trim(content), BORDER_STYLE_SQUARE)
+    content = remove_effects(content)
+    return fg.brightgreen(content)
