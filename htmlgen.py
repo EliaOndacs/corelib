@@ -111,8 +111,10 @@ def h6(text: str, **kwds):
 def div(*childs, **kwds):
     return str(Element("div", "".join(childs), kwds))
 
+
 def section(*childs, **kwds):
     return str(Element("div", "".join(childs), kwds))
+
 
 def script(text: str, **kwds):
     return str(Element("script", text, kwds))
@@ -169,8 +171,10 @@ def hr():
 def style(text: str, **kwds):
     return str(Element("style", text, kwds))
 
+
 def link(href: str, **kwds):
     return str(Element("link", "", {**kwds, "href": href}))
+
 
 def ul(*childs, **kwds):
     return str(Element("ul", _mkbody(childs), kwds))

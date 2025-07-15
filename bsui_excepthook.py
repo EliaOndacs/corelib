@@ -15,12 +15,14 @@ import sys
 from types import TracebackType
 from pathlib import Path
 from os import get_terminal_size
+
 tw, _ = get_terminal_size()
 
 
 import pygments
 from pygments.lexers import python
 from pygments.formatters import TerminalFormatter
+
 
 class Style:
     def __init__(self, **options: dict[str, Any]):
@@ -103,15 +105,17 @@ def bsui_excepthook(
             i = 0
             for line in lines:
                 if i >= (trace.tb_lineno - 5) and i <= (trace.tb_lineno + 5):
-                    line = pygments.highlight(line, python.PythonLexer(), TerminalFormatter())
+                    line = pygments.highlight(
+                        line, python.PythonLexer(), TerminalFormatter()
+                    )
                     if i + 1 == trace.tb_lineno:
                         new += f"-> {i+1}|" + line
                     else:
                         new += f"   {i+1}|" + line
                 i += 1
-            print("-"*tw)
+            print("-" * tw)
             print(new)
-            print("-"*tw)
+            print("-" * tw)
             if trace.tb_next != None:
                 show_trace(trace.tb_next)
 

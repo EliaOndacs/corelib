@@ -39,9 +39,7 @@ def useState[T](default: T | None = None, return_state: bool = False) -> (
         Callable[[T | None], None],
         Callable[[Callable], None],
     ]
-    | tuple[
-        State[T], Callable[[T | None], None], Callable[[Callable], None]
-    ]
+    | tuple[State[T], Callable[[T | None], None], Callable[[Callable], None]]
 ):
     _s = State[T](default)
     _f_set = partial(__setState__, _s)

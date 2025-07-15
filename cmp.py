@@ -3,30 +3,38 @@ a library that helps you create command prompts
 and shell application.
 
 """
+
 from ansi.colour import *
 from typing import Callable, Protocol
 from shlex import shlex
 
 __all__ = ["Renderable", "Prompt", "CommandBook", "CommandPrompt"]
 
+
 class Renderable(Protocol):
     def __str__(self) -> str: ...
 
+
 type Prompt = list[Renderable]
+
 
 class CommandBook:
     def __init__(self) -> None:
-        self.commands: dict[str, tuple[Callable, str]] = {"help": (self.help_command, "show this help message")}
+        self.commands: dict[str, tuple[Callable, str]] = {
+            "help": (self.help_command, "show this help message")
+        }
 
-    def hook(self, func: Callable, description: str|None = None, name: str | None = None):
+    def hook(
+        self, func: Callable, description: str | None = None, name: str | None = None
+    ):
         if not (name):
             if hasattr(func, "__name__"):
                 name = func.__name__
             else:
                 raise ValueError(f"cannot hook {func!r}! (requires manual name)")
-        if not(description):
+        if not (description):
             description = func.__doc__
-        if not(description):
+        if not (description):
             description = "[NO DESCRIPTION!]"
         self.commands[name] = (func, description)
 
@@ -37,6 +45,7 @@ class CommandBook:
         print()
         print(help_msg)
 
+
 class CommandPrompt:
     def __init__(self, name: str, prompt: Prompt, book: CommandBook) -> None:
         self.name: str = name
@@ -44,7 +53,7 @@ class CommandPrompt:
         self.book: CommandBook = book
         self.book.hook(self._exit, f"exit {self.name}", "exit")
         self.cmd: str = ""
-        self.arguments: list[str|int] = []
+        self.arguments: list[str | int] = []
         self.running: bool = True
 
     def _exit(self):
@@ -53,8 +62,8 @@ class CommandPrompt:
     def __call__(self):
         while self.running:
             self._ask()
-            cmd: tuple[Callable, str]|None = self.book.commands.get(self.cmd, None)
-            if not(cmd):
+            cmd: tuple[Callable, str] | None = self.book.commands.get(self.cmd, None)
+            if not (cmd):
                 print(fg.red("command not found!"))
                 continue
             result = cmd[0](*(self.arguments))
@@ -90,5 +99,3 @@ class CommandPrompt:
                 self.arguments.append(False)
                 continue
             self.arguments.append(token)
-
-

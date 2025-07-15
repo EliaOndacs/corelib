@@ -37,4 +37,3 @@ def apply_mask[T](array: Iterable[T], mask: list[Literal[1, 0]]) -> Iterable[T]:
         if mask[index] == 1:
             new.append(item)
     return new
-

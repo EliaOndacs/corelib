@@ -19,6 +19,7 @@ _document_lock = Lock()
 _processors_lock = Lock()
 "protects _global_render_processors"
 
+
 @contextmanager
 def console():
     "the raw console to make changes to the document"
@@ -57,20 +58,23 @@ def render(file: Optional[str] = None) -> str:
 def close() -> None:
     "close the global render lock and lock any further changes, preparing for render"
     global _global_render_lock
-    
+
     with _document_lock:
         _global_render_lock = False
 
-def echo(*string: str) ->None:
+
+def echo(*string: str) -> None:
     "echo the content into the buffer"
     with console() as con:
         con.write("".join(string))
+
 
 def clear() -> None:
     "clear the entire buffer"
     with console() as con:
         con.seek(0)
         con.truncate()
+
 
 def load(content: str) -> None:
     "clears thw whole buffer and replcae it with new content"

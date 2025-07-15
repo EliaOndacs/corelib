@@ -37,9 +37,9 @@ class deta[T]:
         data: dict[str, Any] = (
             vars(self.value) if hasattr(self.value, "__dict__") else {}
         )
-        data["@metadata"] = self._meta
-        data["@value"] = self.value
-        data["@doc"] = self.doc
+        data["metadata"] = self._meta
+        data["value"] = self.value
+        data["doc"] = self.doc
         return data
 
     def modify(self, *modifires: Modifire[T]) -> Self:
@@ -58,4 +58,3 @@ class deta[T]:
                 self.value
             ), f"check failed with the data {self.value!r} on the checker {checker!r}"
         return self
-

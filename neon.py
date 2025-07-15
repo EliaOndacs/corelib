@@ -58,11 +58,11 @@ class SupportsMeasure(Protocol):
     def __neon_measure__(self) -> tuple[int, int]: ...
 
 
-class _SupportAutoRepr(Protocol):
+class SupportAutoRepr(Protocol):
     def __neon__(self) -> Generator[SupportsStr, SupportsStr | None, None]: ...
 
 
-class SupportsStrAndAutoRepr(SupportsStr, _SupportAutoRepr, Protocol):
+class SupportsStrAndAutoRepr(SupportsStr, SupportAutoRepr, Protocol):
     pass
 
 
@@ -107,6 +107,37 @@ BORDER_STYLE_ASCII = (
         fg.blue("+"),
         fg.blue("+"),
         fg.blue("+"),
+    ),
+)
+
+BORDER_STYLE_HORIZONTALS = (
+    (fg.blue("─"), fg.blue("─")),
+    (fg.blue(" "), fg.blue(" ")),
+    (
+        fg.blue("─"),
+        fg.blue("─"),
+        fg.blue("─"),
+        fg.blue("─"),
+    ),
+)
+BORDER_STYLE_VERTICALS = (
+    (fg.blue(" "), fg.blue(" ")),
+    (fg.blue("│"), fg.blue("│")),
+    (
+        fg.blue("│"),
+        fg.blue("│"),
+        fg.blue("│"),
+        fg.blue("│"),
+    ),
+)
+BORDER_STYLE_CORNERS = (
+    (fg.blue(" "), fg.blue(" ")),
+    (fg.blue(" "), fg.blue(" ")),
+    (
+        fg.blue("┌"),
+        fg.blue("┐"),
+        fg.blue("└"),
+        fg.blue("┘"),
     ),
 )
 
@@ -776,6 +807,7 @@ class Canvas:
 
 
 class TerminalDriver:
+    "the interface to communicate with the terminal"
 
     _stdout = sys.stdout
     _stdin = sys.stdin
@@ -961,13 +993,19 @@ class Live:
             self.started = True
 
         refresh_interval = 1 / self.refresh_per_second
-
+        last = None
         while True:
             with self._lock:
                 if not self.started:
                     break
-                self.driver.clear_line()
-                self.driver.stdout(str(self.content))
+                if not last:
+                    self.driver.clear_line()
+                else:
+                    for _ in range(Measurement(last).visible[1] - 1):
+                        self.driver.clear_line()
+                        self.driver.code("A")
+                last = str(self.content)
+                self.driver.stdout(last)
             time.sleep(refresh_interval)
 
         if self.transient:
@@ -1163,7 +1201,7 @@ def joingen(func: Callable[..., Generator[SupportsStr, SupportsStr | None, None]
     return wrapper
 
 
-def useAutoRepr(obj: _SupportAutoRepr) -> SupportsStr:
+def useAutoRepr(obj: SupportAutoRepr) -> SupportsStr:
     if not hasattr(obj, "__neon__"):
         raise TypeError(f"autorepr only supports classes that support __neon__")
 
@@ -1676,3 +1714,36 @@ def view(content: SupportsStr) -> str:
     content = border(trim(content), BORDER_STYLE_SQUARE)
     content = remove_effects(content)
     return fg.brightgreen(content)
+
+
+def Counter(init: float | int, step: float | int):
+    "returns the default timer function used in Oscillator, starts at `init` and increments by `step` everytime the function called"
+    value = init
+
+    def advance():
+        nonlocal value
+        value += step
+        return value
+
+    return advance
+
+
+@dataclass
+class Oscillator:
+    "an oscillator object used to animate and modulate values"
+
+    generator: Callable[[float], float]
+    timer: Callable[[], float | int] = Counter(0, 0.1)
+    value: float | int = 0
+
+    def __call__(self) -> float:
+        return self.step()
+
+    def round(self) -> int:
+        "return the rounded version of the curent value (does not generate a new value)"
+        return round(self.value)
+
+    def step(self) -> float:
+        "update the oscillator and return the new value"
+        self.value = self.generator(self.timer())
+        return self.value

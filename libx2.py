@@ -27,6 +27,6 @@ class I:
     def __index__(self):
         return self.x, self.y
 
+
 Position = I
 Index = I
-

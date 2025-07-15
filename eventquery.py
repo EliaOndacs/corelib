@@ -68,7 +68,7 @@ class EventQuery[T]:
     def clearEvents(self):
         "clears all the event with this event type"
         global _event_queue
-        
+
         filterLambda = lambda e: e.genetic != self.genetic
         filterResult = list(filter(filterLambda, _event_queue.queue))
         _event_queue.queue = filterResult

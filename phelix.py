@@ -311,8 +311,6 @@ def useEffect(callback: Callable[[], None], dependencies: list[str]) -> None:
     component = useComponent()
     if not component.is_mounted:
         return
-    if not component.is_dirty:
-        return
 
     previous_state = component.previous_state
     current_state = component.state

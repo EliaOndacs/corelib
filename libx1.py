@@ -1,6 +1,7 @@
 from typing import Literal
 import re
 
+
 class Bool:
     def __init__(self, value: Literal[0, 1, 2]) -> None:
         self.__alloc__ = value

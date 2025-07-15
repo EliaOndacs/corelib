@@ -174,6 +174,7 @@ def delpage(Book: book, page: int) -> Literal[-1] | book:
         return -1
     return setpage(Book, page, "")
 
+
 @deprecated("use `corelib/rod.py` type validation library instead!")
 def check_type(model: dict, blueprint: DatatypeBlueprint) -> bool:
     "returns True if all the types were corrected, False if they were wrong"

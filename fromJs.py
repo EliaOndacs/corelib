@@ -3,6 +3,7 @@
 import httpx
 from typing import Optional, Union, Dict, Any
 
+
 async def fetch(
     url: str,
     method: str = "GET",
@@ -42,27 +43,29 @@ async def fetch(
         )
         return response
 
+
 import threading
 
 # Dictionary to hold active timeouts
 __timeouts__ = {}
 
+
 def setTimeout(callback, delay):
-    """ Mimics JavaScript's setTimeout. """
+    """Mimics JavaScript's setTimeout."""
     global __timeouts__
-    timer = threading.Timer(delay/1000, callback)
+    timer = threading.Timer(delay / 1000, callback)
     timer.start()
-    
+
     # Store the timer in the timeouts dictionary
     timeout_id = id(timer)  # Use the timer's id as a unique identifier
     __timeouts__[timeout_id] = timer
-    
+
     return timeout_id
 
+
 def clearTimeout(timeout_id):
-    """ Mimics JavaScript's clearTimeout. """
+    """Mimics JavaScript's clearTimeout."""
     global __timeouts__
     timer = __timeouts__.pop(timeout_id, None)  # Remove the timer from the dictionary
     if timer is not None:
         timer.cancel()  # Cancel the timer if it exists
-

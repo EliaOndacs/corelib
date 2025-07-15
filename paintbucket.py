@@ -30,10 +30,12 @@ class Renderable(Protocol):
 # Regular expression to strip ANSI escape codes
 ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
+
 def indent(string, amount=0):
     lines = string.splitlines()
-    final = map((lambda line: ((' '*amount)+line)), lines)
+    final = map((lambda line: ((" " * amount) + line)), lines)
     return "\n".join(final)
+
 
 def padding(string, top=0, bottom=0, left=0, right=0):
     "function to add paddint to a string"
@@ -41,7 +43,7 @@ def padding(string, top=0, bottom=0, left=0, right=0):
     lines = string.splitlines()
 
     # Strip escape codes to calculate the visible width
-    stripped_lines = [ansi_escape.sub('', line) for line in lines]
+    stripped_lines = [ansi_escape.sub("", line) for line in lines]
     max_width = max(len(line) for line in stripped_lines)
 
     # Add left and right padding to each line
@@ -51,12 +53,13 @@ def padding(string, top=0, bottom=0, left=0, right=0):
     ]
 
     # Add top and bottom padding
-    top_padding = [' ' * (max_width + left + right)] * top
-    bottom_padding = [' ' * (max_width + left + right)] * bottom
+    top_padding = [" " * (max_width + left + right)] * top
+    bottom_padding = [" " * (max_width + left + right)] * bottom
 
     # Combine everything
     final_lines = top_padding + padded_lines + bottom_padding
-    return '\n'.join(final_lines)
+    return "\n".join(final_lines)
+
 
 def border(string, padding=1):
     "function to add border to a string"
@@ -102,6 +105,7 @@ class Screen:
         "clear the made text. if mid render, use `clear` instead"
         global _string
         _string = ""
+
 
 class div:
     "a class to make divs in the ui"
@@ -187,5 +191,3 @@ def frame(text: Renderable, *, screen: div | None = None):
     "function to add a bordered text"
     push(border(str(text)), handler=_get_handle(screen))
     newline(screen=screen)
-
-

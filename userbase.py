@@ -43,6 +43,6 @@ class UserGroup:
         return self.request_handler(self, user)
 
     def __repr__(self) -> str:
-        result = self.displayName+"\n"
-        result += "\n".join(map((lambda x: "   - "+repr(x)), self.users))
+        result = self.displayName + "\n"
+        result += "\n".join(map((lambda x: "   - " + repr(x)), self.users))
         return result

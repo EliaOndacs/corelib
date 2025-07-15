@@ -15,13 +15,13 @@ class context[T]:
     _status: ContextStatus
     _gt: dict[str, Any]
 
-    def __init__(self, initial: T|None = None) -> None:
+    def __init__(self, initial: T | None = None) -> None:
         self._gt = {}
         self.status: ContextStatus = 0
         self.value: T | None = initial
 
     @property
-    def status(self) -> ContextStatus: # type: ignore
+    def status(self) -> ContextStatus:  # type: ignore
         """
         current status of the Context
 
@@ -30,7 +30,7 @@ class context[T]:
         return self._status
 
     @status.setter
-    def status(self, new: ContextStatus): # type: ignore
+    def status(self, new: ContextStatus):  # type: ignore
         self._status = new
 
     @property
@@ -48,12 +48,12 @@ class context[T]:
         return True
 
     @property
-    def value(self) -> T | None: # type: ignore
+    def value(self) -> T | None:  # type: ignore
         "Single Value Restored By The Context"
         return self._value
 
     @value.setter
-    def value(self, new: T): # type: ignore
+    def value(self, new: T):  # type: ignore
         self._value = new
 
     def snapshot(self, use_deepcopy: bool = False):
