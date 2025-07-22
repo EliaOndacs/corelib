@@ -1,6 +1,8 @@
 from typing import Any, Callable, Iterable, TypedDict, Literal
 from functools import wraps
 from warnings import deprecated
+from ansi.colour import fg
+import sys
 
 type Treenode[T] = tuple[T, list[Treenode[T]]]
 type Treeroot[T] = list[Treenode[T]]
@@ -35,6 +37,11 @@ class Error:
 
     def __repr__(self) -> str:
         return f"{self.name}:\n{self.message}"
+
+    def throw(self):
+        "raise the error"
+        print(fg.red(repr(self)))
+        sys.exit()
 
     @classmethod
     def new(cls, name: str, message: str) -> "Error":
