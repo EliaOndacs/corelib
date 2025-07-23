@@ -32,7 +32,7 @@ class Node[T](ABC):
 
     def __rshift__(self, other: "Node|Callable"):
         if isinstance(other, Node):
-            return other.receive(self.send()) or self
+            return other.receive(self.send()) or other
 
         if callable(other):
             return other(self.send())
@@ -346,3 +346,17 @@ class EmitNode[T](TapNode[T]):
     def receive(self, value: Any) -> Any:
         self.callback()
         return super().receive(value)
+
+
+class FunctionNode[T](Node[T]):
+    function: Callable[[T], Any]
+
+    def __init__(self, callback: Callable[[T], Any]) -> None:
+        self.function = callback
+
+    def receive(self, value: Any) -> Any:
+        self.function(value)
+        return
+
+    def send(self) -> Any:
+        return
