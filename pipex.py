@@ -360,3 +360,14 @@ class FunctionNode[T](Node[T]):
 
     def send(self) -> Any:
         return
+
+
+class Group[T](Node[T]):
+
+    childs: list[Node[T]] = []
+
+    def receive(self, value: Node[T]) -> Any:
+        self.childs.append(value)
+
+    def send(self) -> Any:
+        return self.childs
