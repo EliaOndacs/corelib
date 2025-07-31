@@ -10,6 +10,7 @@ different types of node
 from abc import ABC, abstractmethod
 import random
 from typing import Any, Callable
+from math import modf
 
 
 class Node[T](ABC):
@@ -322,8 +323,9 @@ class DisconnectNode[T](LockNode[T]):
 
     def receive(self, value: Any) -> Any:
         a = super().receive(value)
-        self.lock()
-        self.value = None
+        if value == self.signal:
+            self.lock()
+            self.value = None
         return a
 
 
@@ -371,3 +373,59 @@ class Group[T](Node[T]):
 
     def send(self) -> Any:
         return self.childs
+
+
+class Signal(Node[float]):
+    "a powerful data type for activation signals and powers"
+
+    __POWER__: float = 0.0
+    __ACTIVATION__: bool = False
+
+    @property
+    def power(self) -> float:
+        return self.__POWER__
+
+    @power.setter
+    def power(self, value: float):
+        if (value > 1) or (value < 0):
+            raise ValueError(
+                f"the power value for a signal object should be between 0 and 99; got {value!r} instead"
+            )
+        self.__POWER__ = value
+
+    @property
+    def activated(self) -> bool:
+        return self.__ACTIVATION__
+
+    @activated.setter
+    def activated(self, value: bool):
+        self.__ACTIVATION__ = value
+
+    def __init__(self, value: float) -> None:
+        self.set_float(value)
+
+    def set_float(self, value: float):
+        imag, real = modf(value)
+        self.activated = real >= 1
+
+        if (imag > 99) or (imag < 0):
+            raise ValueError(
+                f"the power value {value!r} cannot be used to initiate a signal object; the power value is above 99 or below 0"
+            )
+        if real < 0:
+            raise ValueError(
+                f"activation state must be zero or one, got {value.real!r} instead!"
+            )
+        self.power = imag
+
+    def receive(self, value: float) -> Any:
+        self.set_float(value)
+
+    def as_float(self) -> float:
+        return eval(f"{'1' if self.activated else '0'}.{str(self.power)[2:]}")
+
+    def send(self) -> float:
+        return self.as_float()
+
+    def __repr__(self) -> str:
+        return f"SIGNAL(power: {self.power}, activated: {self.activated})"
