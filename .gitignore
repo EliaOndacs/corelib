@@ -7,3 +7,5 @@ domlib.py
 cms.py
 ecl.py
 
+corelib.egg-info
+dist
