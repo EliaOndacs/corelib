@@ -319,10 +319,10 @@ class Character:
         return 1
 
     def __add__(self, other: "SupportsStr|Character"):
-        if isinstance(other, SupportsStr):
-            return self.char + str(other)
-        elif isinstance(other, Character):
+        if isinstance(other, Character):
             return self.char + other.char
+        elif isinstance(other, SupportsStr):
+            return self.char + str(other)
 
     def __mul__(self, other: int):
         return self.char * other
@@ -373,12 +373,12 @@ class Segment:
         return len(self.text)
 
     def __add__(self, other: "SupportsStr|Segment|Character"):
-        if isinstance(other, SupportsStr):
-            return Segment(self.text + str(other))
-        elif isinstance(other, Character):
+        if isinstance(other, Character):
             return Segment(self.text + other.char)
         elif isinstance(other, Segment):
             return Segment(self.text + other.text)
+        elif isinstance(other, SupportsStr):
+            return Segment(self.text + str(other))
 
 
 class Line:
@@ -405,9 +405,8 @@ class Line:
         return len(self.line)
 
     def __add__(self, other: "SupportsStr|Character|Segment|Line"):
-        if isinstance(other, SupportsStr):
-            return Line(self.line + str(other), newline=self.newline)
-        elif isinstance(other, Character):
+
+        if isinstance(other, Character):
             return Line(self.line + other.char, newline=self.newline)
         elif isinstance(other, Segment):
             return Line(self.line + other.text, newline=self.newline)
@@ -415,6 +414,8 @@ class Line:
             return Multiline(
                 (str(self) + str(other)), newline=(self.newline or other.newline)
             )
+        elif isinstance(other, SupportsStr):
+            return Line(self.line + str(other), newline=self.newline)
 
 
 class Multiline:
@@ -439,10 +440,10 @@ class Multiline:
             self.lines.append(line)
 
     def insert(self, index: int, line: SupportsStr | Line):
-        if isinstance(line, SupportsStr):
-            self.lines.insert(index, Line(line, newline=self.lines[index].newline))
-        elif isinstance(line, Line):
+        if isinstance(line, Line):
             self.lines.insert(index, line)
+        elif isinstance(line, SupportsStr):
+            self.lines.insert(index, Line(line, newline=self.lines[index].newline))
 
     def remove(self, line: SupportsStr | Line):
         if isinstance(line, SupportsStr):
@@ -454,12 +455,12 @@ class Multiline:
         return "".join([str(line) for line in self.lines])
 
     def __add__(self, other: "SupportsStr|Line|Multiline"):
-        if isinstance(other, SupportsStr):
-            return Multiline(self.__str__() + str(other))
-        elif isinstance(other, Line):
+        if isinstance(other, Line):
             return Multiline(self.__str__() + str(other))
         elif isinstance(other, Multiline):
             return Multiline(str(self) + str(other))
+        elif isinstance(other, SupportsStr):
+            return Multiline(self.__str__() + str(other))
 
 
 class Control:
