@@ -6,6 +6,7 @@ this modules is also async friendly
 from dataclasses import dataclass
 from typing import Any, Callable
 from queue import Queue
+from abc import ABC
 
 
 @dataclass
@@ -101,3 +102,54 @@ class EventQuery[T]:
 def queryEvent(genetic: object) -> EventQuery[Any]:
     "query a specific type of event"
     return EventQuery(genetic)
+
+
+@dataclass
+class Task[T]:
+    genetic: object
+    value: T | None = None
+
+
+class EventLoop[T](ABC):
+    tasks: list[Task[T]] = []
+    alive: bool = True
+
+    def stop(self):
+        self.alive = False
+
+    def start(self):
+        self.alive = True
+
+    def run(self):
+        while self.alive:
+            for task in self.tasks:
+                emitEvent(task.genetic, task.value)
+                self.cycle()
+
+    def remove_task(self, genetic: object):
+        self.tasks = [task for task in self.tasks if task.genetic != genetic]
+
+    def mutate_tasks(self, mutator: Callable[[Task], Task]):
+        self.tasks = [mutator(task) for task in self.tasks]
+
+    def create_task(self, genetic: object, value: T | None = None):
+        self.tasks.append(Task(genetic, value))
+        return len(self.tasks) - 1
+
+    def get_task_ids_from_code(self, genetic: object) -> list[int]:
+        task_ids = [
+            index for index, task in enumerate(self.tasks) if task.genetic == genetic
+        ]
+        return task_ids
+
+    def get_task_from_id(self, task_id: int) -> Task | None:
+        if len(self.tasks) - 1 < task_id:
+            return None
+
+        if task_id < 0:
+            return None
+
+        return self.tasks[task_id]
+
+    def cycle(self):
+        pass
