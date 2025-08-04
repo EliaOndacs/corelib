@@ -1718,7 +1718,7 @@ def view(content: SupportsStr) -> str:
 
 
 def Counter(init: float | int, step: float | int):
-    "returns the default timer function used in Oscillator, starts at `init` and increments by `step` everytime the function called"
+    "returns the default timer function used in Oscillator, starts at `init` and increments by `step` every time the function called"
     value = init
 
     def advance():
@@ -1741,10 +1741,20 @@ class Oscillator:
         return self.step()
 
     def round(self) -> int:
-        "return the rounded version of the curent value (does not generate a new value)"
+        "return the rounded version of the current value (does not generate a new value)"
         return round(self.value)
 
     def step(self) -> float:
         "update the oscillator and return the new value"
         self.value = self.generator(self.timer())
         return self.value
+
+
+def title(name: str, *, mode: Literal["modern", "comic", "legacy"]):
+    if mode == "modern":
+        return f"-=# {name} #=-"
+    elif mode == "legacy":
+        return f"-[ {name} ]-"
+    elif mode == "comic":
+        name_up = name.capitalize()
+        return f"{name_up[0]*5} {name_up} {name_up[-1]*5}"
