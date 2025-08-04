@@ -123,8 +123,9 @@ class EventLoop[T](ABC):
     def run(self):
         while self.alive:
             for task in self.tasks:
+                self.pre_cycle()
                 emitEvent(task.genetic, task.value)
-                self.cycle()
+                self.post_cycle()
 
     def remove_task(self, genetic: object):
         self.tasks = [task for task in self.tasks if task.genetic != genetic]
@@ -151,5 +152,8 @@ class EventLoop[T](ABC):
 
         return self.tasks[task_id]
 
-    def cycle(self):
+    def pre_cycle(self):
+        pass
+
+    def post_cycle(self):
         pass
