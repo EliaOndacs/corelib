@@ -31,16 +31,20 @@ class Node[T](ABC):
 
         return self.receive(other) or self
 
-    def __rshift__(self, other: "Node|Callable"):
+    def __rshift__(self, other: "Node|Any|Callable"):
         if isinstance(other, Node):
             return other.receive(self.send()) or other
 
         if callable(other):
             return other(self.send())
 
-        raise TypeError(
-            f"unsupported right-side piping to an object of type {type(other).__name__!r}"
-        )
+        return self.receive(other) or self
+
+    def __rrshift__(self, other: Any):
+        return self.receive(other) or self
+
+    def __rlshift__(self, other: Any):
+        return self.receive(other) or self
 
 
 class DataNode[T](Node[T]):
@@ -364,7 +368,7 @@ class FunctionNode[T](Node[T]):
         return
 
 
-class Group[T](Node[T]):
+class NodeGroup[T](Node[T]):
 
     childs: list[Node[T]] = []
 
