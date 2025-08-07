@@ -1569,7 +1569,9 @@ class LoggerSystem:
             f"{fg.cyan(date)} {fg.red("reporter:")}{fg.cyan(f"@{department.display}")}\n{self.color_type(name)}: {fg.grey(message)}\n\n"
         )
 
-    def exception(self, department: "LoggingDepartment", err: Exception):
+    def exception(
+        self, department: "LoggingDepartment", err: Exception, exit: bool = False
+    ):
         "write a new exception log"
         date = datetime.now().strftime(self.date_format)
         if self.file:
@@ -1586,6 +1588,8 @@ class LoggerSystem:
         self.driver.stdout(
             f"{fg.cyan(date)} {fg.red("reporter:")}{fg.cyan(f"@{department.display}")}\n{fg.magenta(type(err).__name__)}: {fg.red(str(err))}\n"
         )
+        if exit:
+            sys.exit(-1)
 
         def show_trace(trace: TracebackType | None):
             if trace:
@@ -1663,9 +1667,9 @@ class LoggingDepartment:
         "write a new log"
         self.logger.write(department, typename, message)
 
-    def exception(self, department: "LoggingDepartment", err: Exception):
+    def exception(self, department: "LoggingDepartment", err: Exception, exit: bool = False):
         "write a new exception log"
-        self.logger.exception(department, err)
+        self.logger.exception(department, err, exit)
 
     @property
     def display(self):
@@ -1693,12 +1697,12 @@ class LoggingDepartment:
         self.logger.write(self, "fatal", message)
 
     @contextmanager
-    def wrap(self, raise_error: bool = False):
+    def wrap(self, raise_error: bool = False, exit: bool = False):
         "a wrap block that automatically logs all errors inside"
         try:
             yield
         except Exception as err:
-            self.logger.exception(self, err)
+            self.logger.exception(self, err, exit)
             if raise_error:
                 raise
 
