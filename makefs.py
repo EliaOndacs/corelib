@@ -14,7 +14,7 @@ mkfs({
             "text": "print('hello, world!')\"
         },
         {
-            "name": "conent_dir",
+            "name": "content_dir",
             "items": [
                 {
                     "name": "info.txt",
@@ -67,7 +67,7 @@ def mkfs(map: _DirectoryBlueprint, parent: str | None = None):
     if not os.path.exists(fullpath):
         os.mkdir(fullpath)
     for item in map["items"]:
-        if item.get("text", None):
+        if item.get("text", None) is not None:
             file(item, parent=fullpath)  # type: ignore
             continue
         mkfs(item, parent=fullpath)  # type: ignore
