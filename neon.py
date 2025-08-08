@@ -501,7 +501,8 @@ class Measurement:
     def __init__(self, string: SupportsStr | SupportsMeasure) -> None:
         if isinstance(string, SupportsMeasure):
             self.string = string.__neon_measure__()
-        self.string = str(string)
+        else:
+            self.string = str(string)
 
     @property
     def columns(self) -> int:
@@ -999,7 +1000,7 @@ class Live:
             with self._lock:
                 if not self.started:
                     break
-                if not last:
+                if last:
                     self.driver.clear_line()
                 else:
                     for _ in range(Measurement(last).visible[1] - 1):
@@ -1053,7 +1054,7 @@ class Status:
 
         spinner = Animation(self.spinner, loop=True)  # type: ignore
         interval = 1 / self.refresh_per_second
-        with Live(str(spinner), transient=True) as liv:
+        with Live(str(spinner), transient=self.transient) as liv:
             while True:
                 with self._lock:
                     if not self.started:
@@ -1100,7 +1101,7 @@ def rule(
 
 
 class Table:
-    "a table with a header and rows"
+    "A table with headers and rows."
 
     def __init__(
         self, *headers: SupportsStr, table_style: TableStyle = ("│", "─", "┼")
@@ -1113,24 +1114,35 @@ class Table:
         self.data.append(list(columns))
 
     def __str__(self) -> str:
+        def pad_cell(cell: str, width: int) -> str:
+            visible_width = Measurement(cell).visible[0]
+            return f" {cell}{' ' * (width - visible_width)} "
+
+        def format_row(row: list[str], widths: list[int]) -> str:
+            return self.style[0].join(
+                pad_cell(cell, width) for cell, width in zip(row, widths)
+            )
+
+        rows = [[str(cell) for cell in row] for row in self.data]
+        headers = list(self.headers)
+
+        columns = list(zip(headers, *rows))
         column_widths = [
-            max(len(str(item)) for item in col) for col in zip(self.headers, *self.data)
+            max(Measurement(cell).visible[0] for cell in col) for col in columns
         ]
 
-        row_format = f" {self.style[0]} ".join(
-            f"{{:<{width}}}" for width in column_widths
-        )
+        header_row = format_row(headers, column_widths)
 
-        header_row = row_format.format(*self.headers)
         separator = (self.style[1] + self.style[2] + self.style[1]).join(
-            self.style[1] * width for width in column_widths
+            self.style[1] * (w + (1 if i == 0 else 0))
+            for i, w in enumerate(column_widths)
         )
 
-        data_rows = "\n".join(row_format.format(*row) for row in self.data)
+        data_rows = "\n".join(format_row(row, column_widths) for row in rows)
 
         return (
             f"{header_row}\n{separator}\n{data_rows}"
-            if self.data
+            if rows
             else f"{header_row}\n{separator}"
         )
 
@@ -1667,7 +1679,9 @@ class LoggingDepartment:
         "write a new log"
         self.logger.write(department, typename, message)
 
-    def exception(self, department: "LoggingDepartment", err: Exception, exit: bool = False):
+    def exception(
+        self, department: "LoggingDepartment", err: Exception, exit: bool = False
+    ):
         "write a new exception log"
         self.logger.exception(department, err, exit)
 
