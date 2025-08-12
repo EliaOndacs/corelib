@@ -1001,9 +1001,7 @@ class Live:
                 if not self.started:
                     break
                 if last:
-                    self.driver.clear_line()
-                else:
-                    for _ in range(Measurement(last).visible[1] - 1):
+                    for _ in range(Measurement(last).visible[1]):
                         self.driver.clear_line()
                         self.driver.code("A")
                 last = str(self.content)
@@ -1185,6 +1183,25 @@ class Group:
 
     def __init__(self, *renderables: SupportsStr) -> None:
         self.renderables = renderables
+
+    def __str__(self) -> str:
+        content = Segment("")
+        for renderable in self.renderables:
+            content += Segment(str(renderable))
+        return str(content)
+
+
+class View:
+    "similar to Group but is mutable and renderables can change during runtime"
+
+    def __init__(self, *renderables: SupportsStr) -> None:
+        self.renderables = list(renderables)
+
+    def pushChild(self, renderable: SupportsStr):
+        self.renderables.append(renderable)
+
+    def extendChilds(self, *renderables: SupportsStr):
+        self.renderables.extend(renderables)
 
     def __str__(self) -> str:
         content = Segment("")
