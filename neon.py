@@ -974,7 +974,7 @@ class Live:
         self,
         content: SupportsStr,
         *,
-        transient: bool = False,
+        transient: bool = True,
         refresh_per_second: int = 4,
     ) -> None:
         self.content = content
@@ -1000,20 +1000,28 @@ class Live:
             with self._lock:
                 if not self.started:
                     break
+                amount_lines = Measurement(last).visible[1]
                 if last:
-                    for _ in range(Measurement(last).visible[1]):
+                    if amount_lines > 1:
+                        for _ in range(amount_lines):
+                            self.driver.clear_line()
+                            self.driver.code("A")
+                            self.driver.stdout("\r")
+                    else:
                         self.driver.clear_line()
-                        self.driver.code("A")
+                        self.driver.stdout("\r")
                 last = str(self.content)
                 self.driver.stdout(last)
             time.sleep(refresh_interval)
 
         if self.transient:
             self.driver.clear_line()
+            self.driver.stdout("\r")
         else:
             self.driver.stdout("\n")
 
     def stop(self):
+
         with self._lock:
             self.started = False
 
@@ -1033,7 +1041,7 @@ class Status:
         progress: SupportsStr = "loading...",
         *,
         spinner: list[str] = [".  ", ".. ", "...", " ..", "  .", "   "],
-        transient: bool = False,
+        transient: bool = True,
         refresh_per_second: int = 4,
     ) -> None:
         self.progress = str(progress)
@@ -1060,11 +1068,6 @@ class Status:
                     spinner.update()
                     liv.update(f"{str(spinner)} {self.progress}")
                 time.sleep(interval)
-
-        if self.transient:
-            self.driver.clear_line()
-        else:
-            self.driver.stdout("\n")
 
     def stop(self):
         with self._lock:
