@@ -51,6 +51,7 @@ class Component[RType]:
         lambda _: None,
         lambda _: None,
     )
+    _flagged_as_dirty: bool = False
 
     @property
     def is_mounted(self) -> bool:
@@ -76,7 +77,12 @@ class Component[RType]:
     @property
     def is_dirty(self) -> bool:
         "returns wether the component state has changed or not"
-        return not (self.previous_state == self._state)
+        return ( not (self.previous_state == self._state) ) or ( self._flagged_as_dirty )
+
+    @is_dirty.setter
+    def is_dirty(self, new: bool):
+        "set the component as dirty"
+        self._flagged_as_dirty = new
 
     def useReactivity(
         self,
@@ -96,6 +102,7 @@ class Component[RType]:
             result = self.function(*args, **kwargs)
         self.is_mounted = True
         if self.is_dirty:
+            self._flagged_as_dirty = False
             self._reactivity[1](self)
         return result
 
@@ -110,45 +117,37 @@ def leafComponent[RType](function: Callable[..., RType]) -> Component[RType]:
     return component
 
 
-class GlobalStore:
-    "(internal) a global state store used for the application"
+def store(initial: dict[str, Any], reducer: dict[str, Callable[[dict[str, Any]], dict[str, Any]]]) -> tuple[Callable[[str], tuple[Any, Callable[[Any], Any]]], Callable[[str], None]]:
+    "an applicaton level global state store"
+    data = initial
 
-    def __init__(self):
-        self._state: dict[str, Any] = {}
-        self._subscribers: dict[str, set[Callable]] = {}
+    def write(new: dict[str, Any]):
+        nonlocal data
+        data = new
 
-    def get(self, key: str) -> Any:
-        "get a state by its name"
-        return self._state.get(key)
+    def __useState(name: str) -> tuple[Any, Callable[[Any], Any]]:
+        nonlocal data
 
-    def set(self, key: str, value: Any) -> None:
-        "set a state value"
-        old_value = self._state.get(key)
-        if old_value != value:
-            self._state[key] = value
-            self._notify(key)
+        def writer(new: Any) -> Any:
+            nonlocal data
+            write({**data, name: new})
+            useComponent().is_dirty = True
+            return new
 
-    def subscribe(self, key: str, callback: Callable) -> None:
-        "add a subscriber callback function on the change of a state by its name"
-        if key not in self._subscribers:
-            self._subscribers[key] = set()
-        self._subscribers[key].add(callback)
+        return data.get(name, initial), writer
 
-    def unsubscribe(self, key: str, callback: Callable) -> None:
-        "remove a callback subscriber"
-        if key in self._subscribers:
-            self._subscribers[key].discard(callback)
+    def useReducer(name: str):
+        nonlocal data
+        mutator = reducer.get(name, lambda x: x)
+        data = mutator(data)
 
-    def _notify(self, key: str) -> None:
-        for callback in self._subscribers.get(key, []):
-            callback()
+
+    return __useState, useReducer
 
 
 class Application:
     "a phelix application layer"
 
-    store: GlobalStore
-    "the application global state store"
     name: str
     "name of the app"
     components: dict[str, Component] = {}
@@ -174,7 +173,6 @@ class Application:
 
     def __init__(self, name: str) -> None:
         self.name = name
-        self.state = GlobalStore()
 
     def component[RType](self, function: Callable[..., RType]) -> Component[RType]:
         "create a new component"
@@ -348,15 +346,3 @@ def useRoute(route: str) -> bool:
     if app is None:
         raise RuntimeError("useRoute() must be used within an application context")
     return app.load_route(route)
-
-
-def useGlobalStore() -> GlobalStore:
-    "return the current global state store"
-    app = useApp()
-    if app is None:
-        raise RuntimeError(
-            "useGlobalStore() must be used within an application context"
-        )
-    if app.state is None:
-        raise RuntimeError("corrupted application instance with no `app.state`!")
-    return app.state
