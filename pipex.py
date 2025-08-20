@@ -9,7 +9,7 @@ different types of node
 
 from abc import ABC, abstractmethod
 import random
-from typing import Any, Callable
+from typing import Any, Callable, Generator
 from math import modf
 
 
@@ -433,3 +433,42 @@ class Signal(Node[float]):
 
     def __repr__(self) -> str:
         return f"SIGNAL(power: {self.power}, activated: {self.activated})"
+
+
+
+class Liquid[VT]:
+    values: list[VT]
+
+    def __init__(self, *values: VT) -> None:
+        self.values = list(values)
+
+    def __iter__(self):
+        return self.values
+
+    def reduce(self) -> Generator[VT, None, None]:
+        for _ in range(len(self.values)):
+            yield self.values.pop()
+
+    def dilution(self, other: "Liquid"):
+        self.values.extend(other.values)
+
+    def pour(self, data: VT):
+        self.values.append(data)
+
+    def filter(self, func: Callable[[VT], bool]) -> list[VT]:
+        extra: list[VT] = []
+        new = []
+        for item in self.values:
+            if func(item):
+                new.append(item)
+                continue
+            extra.append(item)
+        self.values = new
+        return extra
+
+    @property
+    def length(self):
+        return len(self.values)
+
+
+
