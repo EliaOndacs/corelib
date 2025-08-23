@@ -13,4 +13,5 @@ jinja2
 more-itertools
 pywebview
 plyer
-greenlet
+lark
+pydantic
