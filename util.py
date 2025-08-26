@@ -109,7 +109,7 @@ def does_key_namespace_exist(name: str):
 
 
 def keygen(name: str) -> str:
-    "generate a new key for the specefied namespace"
+    "generate a new key for the specified namespace"
     global _keys
     does_key_namespace_exist(name)
     _ns = _keys[name]
