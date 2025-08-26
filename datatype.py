@@ -26,7 +26,7 @@ type pointer[T] = int
 type carry[T] = T
 NULL = 0
 EXIT_FAILURE = -1
-EXIT_SUCCESSFULL = 0
+EXIT_SUCCESSFUL = 0
 
 
 class Error:
