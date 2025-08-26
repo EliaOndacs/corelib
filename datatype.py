@@ -1,6 +1,5 @@
-from typing import Any, Callable, Iterable, TypedDict, Literal
+from typing import Any, Callable, Literal
 from functools import wraps
-from warnings import deprecated
 from ansi.colour import fg
 import sys
 
@@ -94,67 +93,6 @@ def makeobj(func):
     return wrapper
 
 
-class char:
-    "a type for working with one u8 character"
-
-    @classmethod
-    def split(cls, text: str) -> Iterable["char"]:
-        r = []
-        for c in text:
-            r.append(char(c))
-        return r
-
-    def __init__(self, char: str):
-        if len(char) > 1:
-            raise MemoryError(
-                f"expected one character but got a string with the length of {len(char)}"
-            )
-        self._x = char[0].encode()
-
-    def __ne__(self, other: object, /) -> bool:
-        return not self.__eq__(other)
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, char):
-            raise TypeError(
-                f"unsupported operation '+' with the type 'char' and {type(other).__name__!r}"
-            )
-        return self._x == other._x
-
-    def __len__(self):
-        return len(self._x)
-
-    def __repr__(self):
-        return f"u8{self._x.decode()!r}"
-
-    def __str__(self):
-        return self._x.decode()
-
-    def upper(self) -> "char":
-        return char(self._x.decode().upper())
-
-    def lower(self) -> "char":
-        return char(self._x.decode().lower())
-
-    def join(self, array: Iterable) -> str:
-        return self._x.decode().join(array)
-
-    def __add__(self, other: "char") -> bytes:
-        if not isinstance(other, char):
-            raise TypeError(
-                f"unsupported operation '+' with the type 'char' and {type(other).__name__!r}"
-            )
-        return self._x + other._x
-
-    def __sizeof__(self) -> int:
-        return self._x.__sizeof__()
-
-
-@deprecated("use `corelib/rod.py` type validation library instead!")
-class DatatypeBlueprint(TypedDict):
-    fields: dict[str, Any]
-
-
 type book = dict[int, str]
 "a type that inherits `dict` for storing data in a `page: text` manner."
 
@@ -180,17 +118,3 @@ def delpage(Book: book, page: int) -> Literal[-1] | book:
     if not (page in Book):
         return -1
     return setpage(Book, page, "")
-
-
-@deprecated("use `corelib/rod.py` type validation library instead!")
-def check_type(model: dict, blueprint: DatatypeBlueprint) -> bool:
-    "returns True if all the types were corrected, False if they were wrong"
-    result = True
-    if model.keys() != blueprint["fields"].keys():
-        result = False
-        return result
-    for field in model:
-        data = model[field]
-        if not isinstance(data, blueprint["fields"][field]):
-            result = False
-    return result
