@@ -6,7 +6,6 @@ to build cli/tui apps or combine with sanic for web development
 
 from .pipex import *
 from .phelix import *
-from .neon import *
 from .makefs import *
 from sqllex import types, SQLite3x  # type: ignore
 from pydantic import BaseModel
