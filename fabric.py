@@ -33,7 +33,7 @@ def render(node, values):
 print(transform(tree, render))
 ```
 output:
-```
+```html
 <div><span>Hello</span><span>World</span></div>
 ```
 
@@ -48,7 +48,7 @@ class Group:
     "a base group class used to store a group of children that can be other `Group` objects or `Symbol` objects"
 
     name: str
-    children: list["Group|Symbol"] = field(default_factory=list)
+    children: list["Group|Symbol|object"] = field(default_factory=list)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Group):
@@ -86,7 +86,7 @@ class Symbol[T]:
 def group(name: str) -> Callable[..., Group]:
     "a utility helper function used to create constructors for group types"
 
-    def constructor(*nodes: Group | Symbol) -> Group:
+    def constructor(*nodes: Group | Symbol | object) -> Group:
         return Group(name, list(nodes))
 
     return constructor
@@ -101,9 +101,10 @@ def symbol(name: str) -> Callable[..., Symbol]:
     return constructor
 
 
-def walk(node: Group | Symbol):
+def walk(node: Group | Symbol | object):
     "allows you walk through all the nodes in a tree"
-    yield node
+    if isinstance(node, Group) or isinstance(node, Symbol):
+        yield node
     if isinstance(node, Group):
         for child in node.children:
             yield from walk(child)
@@ -114,7 +115,8 @@ def walk(node: Group | Symbol):
 
 
 def transform(
-    node: Group | Symbol, fn: Callable[[Group | Symbol, list[Any]], Any]
+    node: Group | Symbol | object,
+    fn: Callable[[Group | Symbol | object, list[Any]], Any],
 ) -> Any:
     "recursively applies `fn` bottom-up, evaluating children first and passing their results to the parent"
     if isinstance(node, Group):
@@ -126,4 +128,4 @@ def transform(
         ]
         return fn(node, data_values)
     else:
-        raise TypeError(f"Unexpected node type: {type(node)}")
+        return node
