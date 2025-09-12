@@ -6,18 +6,37 @@ provides:
 - symbol: leaf node with data
 - group(name)/symbol(name): helpers to create nodes
 - walk(node): depth-first tree traversal
+- transform(node, fn): bottom-up tree transformer that applies `fn` with evaluated children
+
 
 example:
 ```python
-from corelib.fabric import group, symbol, walk
+from corelib.fabric import group, symbol, walk, transform
 
 div = group("div")
 span = symbol("span")
+text = symbol("text")
 
-tree = div(span("Hello"), span("World"))
+tree = div(span(text("Hello")), span(text("World")))
+
+# walk through the tree
 for node in walk(tree):
     print(node)
+
+# transform the tree into HTML
+def render(node, values):
+    if node.name == "div": return "<div>" + "".join(values) + "</div>"
+    if node.name == "span": return "<span>" + "".join(values) + "</span>"
+    if node.name == "text": return "".join(values)
+    return "".join(values)
+
+print(transform(tree, render))
 ```
+output:
+```
+<div><span>Hello</span><span>World</span></div>
+```
+
 """
 
 from dataclasses import dataclass, field
@@ -92,3 +111,19 @@ def walk(node: Group | Symbol):
         for child in node.data:
             if isinstance(child, (Group, Symbol)):
                 yield from walk(child)
+
+
+def transform(
+    node: Group | Symbol, fn: Callable[[Group | Symbol, list[Any]], Any]
+) -> Any:
+    "recursively applies `fn` bottom-up, evaluating children first and passing their results to the parent"
+    if isinstance(node, Group):
+        children_values = [transform(child, fn) for child in node.children]
+        return fn(node, children_values)
+    elif isinstance(node, Symbol):
+        data_values = [
+            transform(d, fn) if isinstance(d, (Group, Symbol)) else d for d in node.data
+        ]
+        return fn(node, data_values)
+    else:
+        raise TypeError(f"Unexpected node type: {type(node)}")
