@@ -39,8 +39,10 @@ output:
 
 """
 
+from typing import Any, Callable, Generator
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from contextlib import contextmanager
+from functools import wraps
 
 
 @dataclass
@@ -129,3 +131,19 @@ def transform(
         return fn(node, data_values)
     else:
         return node
+
+
+def from_transformer(fn: Callable[[Group | Symbol | object, list[Any]], Any]):
+    "a decorator to turn any function into a transformer"
+
+    @wraps(fn)
+    def wrapper(node: Group | Symbol | object):
+        return transform(node, fn)
+
+    return wrapper
+
+
+@contextmanager
+def push[T](stack: list[T], item: T) -> Generator[T, None, None]:
+    stack.append(item)
+    yield stack.pop()
