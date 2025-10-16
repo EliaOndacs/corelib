@@ -435,7 +435,6 @@ class Signal(Node[float]):
         return f"SIGNAL(power: {self.power}, activated: {self.activated})"
 
 
-
 class Liquid[VT]:
     values: list[VT]
 
@@ -471,4 +470,60 @@ class Liquid[VT]:
         return len(self.values)
 
 
+class BMap2D:
 
+    @classmethod
+    def ones(cls, width: int, height: int):
+        return BMap2D(width, height, [1] * (width * height))
+
+    @classmethod
+    def zeros(cls, width: int, height: int):
+        return BMap2D(width, height, [0] * (width * height))
+
+    def __init__(self, width: int, height: int, values: list[int]) -> None:
+        self.width, self.height = width, height
+        self.pos = 0
+        self.array = bytearray(values)
+
+    def crop(self):
+        self.array = self.array[0 : (self.width * self.height)]
+
+    def fill(self, value: int):
+        virtual_size = self.width * self.height
+        real_size = len(self.array)
+        if (nf := virtual_size - real_size) > 0:
+            self.array.extend([value] * nf)
+
+    def resize(self, width: int, height: int):
+        self.width, self.height = width, height
+
+    def mapcord(self, x: int, y: int):
+        x = max(0, min(x, self.width - 1))
+        y = max(0, min(y, self.height - 1))
+
+        return x, y
+
+    def get(self, x: int, y: int):
+        x, y = self.mapcord(x, y)
+        return self.array[x + (self.width * y)]
+
+    def set(self, x: int, y: int, value: int):
+        x, y = self.mapcord(x, y)
+        self.array[x + (self.width * y)] = value
+
+    def view(self):
+        return memoryview(self.array)
+
+    @property
+    def size(self):
+        return self.width * self.height
+
+    def __len__(self):
+        return len(self.array)
+
+    def __iter__(self):
+        return iter(self.array)
+
+
+def array(factory):
+    return lambda length, *args: [factory(*args)] * length
