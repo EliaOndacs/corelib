@@ -118,7 +118,7 @@ def leafComponent[RType](function: Callable[..., RType]) -> Component[RType]:
 
 
 def store(initial: dict[str, Any], reducer: dict[str, Callable[[dict[str, Any]], dict[str, Any]]]) -> tuple[Callable[[str], tuple[Any, Callable[[Any], Any]]], Callable[[str], None]]:
-    "an applicaton level global state store"
+    "an application level global state store"
     data = initial
 
     def write(new: dict[str, Any]):
