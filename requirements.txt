@@ -11,7 +11,6 @@ uvicorn
 sanic[ext]
 jinja2
 more-itertools
-pywebview
 plyer
 lark
 pydantic
